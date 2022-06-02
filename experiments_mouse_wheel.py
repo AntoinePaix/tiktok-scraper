@@ -39,6 +39,6 @@ with sync_playwright() as p:
     context = browser.new_context(viewport={"width": 1920, "height": 1080})
     page = context.new_page()
     page.route("**/*", block_unnecessary_resources)
-    page.goto("https://www.tiktok.com/@tatimeowmeow444?lang=fr")
+    page.goto("https://www.tiktok.com/@emmanuelmacron?lang=fr")
     scroll_to_bottom(page)
     page.pause()
