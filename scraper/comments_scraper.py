@@ -105,7 +105,7 @@ class TikTokCommentsScraper:
                 else:
                     has_replies = False
 
-    def _extract_essentials_from_comment(self, comment: Dict) -> Dict[str, str]:
+    def _extract_essentials_data_from_comment(self, comment: Dict) -> Dict[str, str]:
         comment_dict = {}
         comment_dict["comment_id"] = comment["cid"]
         comment_dict["text"] = comment["text"]
@@ -124,10 +124,10 @@ class TikTokCommentsScraper:
             data = response.json()
             base_comments = data.get("comments", None)
             for comment in base_comments:
-                yield self._extract_essentials_from_comment(comment)
+                yield self._extract_essentials_data_from_comment(comment)
 
                 for reply in self.generate_replies_from_comment(comment):
-                    yield self._extract_essentials_from_comment(reply)
+                    yield self._extract_essentials_data_from_comment(reply)
 
             if data["has_more"] == 1:
                 has_more_comments = True
@@ -152,4 +152,4 @@ if __name__ == "__main__":
         print("=" * screen_width)
         counter += 1
 
-    print(f"Nombre de commentaires: {counter}")
+    print(f"Nombre de commentaires scrapés: {counter}")

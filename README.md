@@ -16,5 +16,5 @@ playwright install
 ## How to use:
 
 ```bash
-python tiktok_scraper_v2.py emmanuelmacron
+python scraper charlidamelio
 ```

@@ -1,3 +1,6 @@
 venv
 downloaded_videos
 __pycache__
+sandbox
+captchas_images
+data
