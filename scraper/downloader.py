@@ -41,8 +41,8 @@ async def scroll_to_bottom(page: playwright.async_api.Page,
         page (playwright.async_api.Page): Playwright async page object.
         load_state_method (Literal['networkidle', 'load', 'domcontentloaded'], optional): Loading state methode used for loading page body. Defaults to "networkidle".
     """
-    positions_deque_size = 200
-    last_y_positions = collections.deque(maxlen=200)
+    positions_deque_size = 300
+    last_y_positions = collections.deque(maxlen=positions_deque_size)
 
     has_reached = False
     while not has_reached:
@@ -88,7 +88,8 @@ async def handle_response(response: playwright.async_api.Response) -> None:
         # Process each tiktok here.
         for tiktok in tiktoks:
             item = TikTok(tiktok)
-            await download_video(item.download_addr, item.video_filename, item.unique_id)
+            task = asyncio.create_task(download_video(item.download_addr, item.video_filename, item.unique_id))
+            await task
 
     except:
         pass
@@ -100,6 +101,7 @@ async def scraper(username: str, headless: bool = True):
         username (str): Tiktok username to scrape.
         headless (bool, optional): Hide browser or not. Defaults to True.
     """
+
     async with async_playwright() as p:
         browser = await p.chromium.launch(headless=headless)
         context = await browser.new_context(
