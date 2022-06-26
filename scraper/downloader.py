@@ -1,6 +1,7 @@
 import asyncio
 import collections
 import json
+import locale
 
 from typing import Literal
 
@@ -13,6 +14,7 @@ from playwright_stealth import stealth_async
 
 from constants import DOCUMENT_JSON_SCRIPT_CSS_SELECTOR
 from constants import EXCLUDED_RESOURCE_TYPES
+from constants import CHROMIUM_USER_AGENT
 
 from models import TikTok
 
@@ -105,8 +107,8 @@ async def scraper(username: str, headless: bool = True):
     async with async_playwright() as p:
         browser = await p.chromium.launch(headless=headless)
         context = await browser.new_context(
-            user_agent="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.5060.53 Safari/537.36",
-            locale="fr-FR"
+            user_agent=CHROMIUM_USER_AGENT,
+            locale=locale.getdefaultlocale()[0]
         )
         page = await context.new_page()
         await stealth_async(page)
@@ -124,4 +126,4 @@ def run(username: str) -> None:
     asyncio.run(scraper(username))
 
 if __name__ == "__main__":
-    run("emmanuelmacron")
+    run("charlidamelio")

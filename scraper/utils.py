@@ -1,7 +1,5 @@
 import os
 
-from typing import Set
-
 import aiofiles
 import httpx
 
