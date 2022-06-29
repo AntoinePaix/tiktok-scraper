@@ -19,6 +19,7 @@ from constants import CHROMIUM_USER_AGENT
 from models import TikTok
 
 from utils import download_video
+import httpx
 
 
 async def block_unnecessary_resources(route: playwright.async_api.Route) -> None:
@@ -88,11 +89,12 @@ async def handle_response(response: playwright.async_api.Response) -> None:
             tiktoks = json_data["itemList"]
 
         # Process each tiktok here.
-        for tiktok in tiktoks:
-            item = TikTok(tiktok)
-            task = asyncio.create_task(download_video(item.download_addr, item.video_filename, item.unique_id))
-            await task
-
+        async with httpx.AsyncClient() as client:
+            tasks = []
+            for tiktok in tiktoks:
+                item = TikTok(tiktok)
+                tasks.append(asyncio.ensure_future(download_video(client, item.download_addr, item.video_filename, item.unique_id)))
+            await asyncio.gather(*tasks)
     except:
         pass
 

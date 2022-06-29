@@ -4,7 +4,7 @@ import aiofiles
 import httpx
 
 
-async def download_video(download_addr_url: str, filename: str, username: str) -> None:
+async def download_video(session: httpx.AsyncClient, download_addr_url: str, filename: str, username: str) -> None:
     """Function to download video from tiktok.
 
     Args:
@@ -22,12 +22,10 @@ async def download_video(download_addr_url: str, filename: str, username: str) -
     if filename not in files:
         full_path_file = f"{full_directory_path}/{filename}"
         async with aiofiles.open(full_path_file, mode="wb") as file:
+            response = await session.get(download_addr_url)
+            async for chunk in response.aiter_bytes():
+                await file.write(chunk)
             print(f"[+] Download {filename}")
-            async with httpx.AsyncClient() as client:
-                response = await client.get(download_addr_url)
-
-                async for chunk in response.aiter_bytes():
-                    await file.write(chunk)
 
     else:
         print(f"[=] {filename} already downloaded.")
