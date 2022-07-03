@@ -5,6 +5,8 @@ import locale
 
 from typing import Literal
 
+import httpx
+
 from bs4 import BeautifulSoup
 
 import playwright.async_api
@@ -16,10 +18,11 @@ from constants import DOCUMENT_JSON_SCRIPT_CSS_SELECTOR
 from constants import EXCLUDED_RESOURCE_TYPES
 from constants import CHROMIUM_USER_AGENT
 
+from config import HEADERS
+
 from models import TikTok
 
 from utils import download_video
-import httpx
 
 
 async def block_unnecessary_resources(route: playwright.async_api.Route) -> None:
@@ -89,7 +92,7 @@ async def handle_response(response: playwright.async_api.Response) -> None:
             tiktoks = json_data["itemList"]
 
         # Process each tiktok here.
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(headers=HEADERS) as client:
             tasks = []
             for tiktok in tiktoks:
                 item = TikTok(tiktok)
@@ -118,14 +121,14 @@ async def scraper(username: str, headless: bool = True):
         await page.route("**/*", block_unnecessary_resources)
         page.on("response", handle_response)
 
-        await page.goto(f"http://www.tiktok.com/@{username}")
+        await page.goto(f"https://www.tiktok.com/@{username}")
         await scroll_to_bottom(page)
 
         await context.close()
         await browser.close()
 
 def run(username: str) -> None:
-    asyncio.run(scraper(username))
+    asyncio.run(scraper(username, headless=True))
 
 if __name__ == "__main__":
     run("charlidamelio")
