@@ -1,11 +1,15 @@
 # TikTok Scraper
 
-A basic tiktok scraper to download videos and account metadata.
+A basic tiktok scraper to download videos, account metadata and comments.
 
-It talks to TikTok the same way [yt-dlp](https://github.com/yt-dlp/yt-dlp) does: the user page rehydration
-data gives the account `secUid`, then the `api/creator/item_list/` web API is paginated by timestamp cursor.
-Requests impersonate a real Chrome browser with [curl_cffi](https://github.com/lexiforest/curl_cffi), so no
-headless browser is needed.
+Videos and metadata are scraped the same way [yt-dlp](https://github.com/yt-dlp/yt-dlp) does: the user page
+rehydration data gives the account `secUid`, then the `api/creator/item_list/` web API is paginated by timestamp
+cursor. Requests impersonate a real Chrome browser with [curl_cffi](https://github.com/lexiforest/curl_cffi), so no
+browser is needed.
+
+Other TikTok API endpoints (comments, ...) only answer requests signed by TikTok's obfuscated JavaScript. For those,
+the optional `playwright` extra opens a TikTok page in a Chromium browser and sends the requests from inside the
+page, where TikTok's own script signs them (see [Browser endpoints](#browser-endpoints-comments)).
 
 ## How to install:
 
@@ -34,6 +38,16 @@ pip ignores `uv.lock` and installs the latest versions allowed by `pyproject.tom
 versions, export them once with `uv export --format requirements.txt > requirements.txt`, then run
 `pip install -r requirements.txt`.
 
+### Browser endpoints (comments)
+
+The `playwright` extra installs [patchright](https://github.com/Kaliiiiiiiiii-Vinyzu/patchright-python), a
+patched Playwright which removes the main automation leaks, then a Chromium build:
+
+```bash
+uv sync --extra playwright           # or: pip install -e ".[playwright]"
+uv run patchright install chromium   # downloads Chromium into ~/.cache/ms-playwright
+```
+
 ## How to use:
 
 ```bash
@@ -45,6 +59,11 @@ uv run tiktok-scraper videos charlidamelio -o videos -j 8
 
 # Print account metadata (profile + statistics) as JSON
 uv run tiktok-scraper info charlidamelio
+
+# Print comments and replies of a tiktok as JSON lines (needs the "playwright" extra)
+uv run tiktok-scraper comments https://www.tiktok.com/@emmanuelmacron/video/7703703665818733857 > comments.jsonl
+uv run tiktok-scraper comments 7703703665818733857 --no-replies   # top-level comments only
+uv run tiktok-scraper comments 7703703665818733857 --headed       # show the browser window
 ```
 
 Global options go before the command:
@@ -153,6 +172,56 @@ asyncio.run(main())
 
 `download_user_videos` uses the client you pass and doesn't close it. Without one, it creates a client with
 default options.
+
+### Comments (browser)
+
+```python
+import asyncio
+
+from tiktok_scraper import iter_comments
+from tiktok_scraper.browser import TikTokBrowser
+
+
+async def main():
+    async with TikTokBrowser(proxy="http://user:password@host:8080") as browser:
+        async for comment in iter_comments(browser, "https://www.tiktok.com/@emmanuelmacron/video/7703703665818733857"):
+            indent = "    " if comment.parent_id else ""  # replies come right after their comment
+            print(f"{indent}@{comment.author_username}: {comment.text} ({comment.like_count} likes)")
+
+
+asyncio.run(main())
+```
+
+`Comment` fields: `id`, `video_id`, `text`, `created_at`, `like_count`, `reply_count`, `language`, `author_id`,
+`author_username`, `author_nickname`, `parent_id` (`None` for a top-level comment).
+
+`TikTokBrowser` options:
+
+| Option | Default | Description |
+|---|---|---|
+| `headless` | `True` | Hide the browser window. A visible window looks more like a real user. |
+| `proxy` | `None` | Proxy URL, e.g. `http://user:password@host:8080` or `socks5://host:1080`. |
+| `user_data_dir` | temporary | Browser profile directory, to keep cookies between runs. |
+| `channel` | `"chromium"` | `"chromium"`, or `"chrome"` to use Google Chrome installed on the system (harder to detect). |
+| `timeout` | `30` | Timeout of page loads, in seconds. |
+
+In headless mode, the browser is patched to look like a regular Chrome: user agent without `HeadlessChrome`, and a
+real screen size. At start, it opens `https://www.tiktok.com/explore` and waits for TikTok's script to get its
+`msToken`, which takes a few seconds.
+
+Any other web API endpoint can be called the same way, the common parameters (`device_id`, ...) are added:
+
+```python
+data = await browser.request_json(
+    "https://www.tiktok.com/api/comment/list/", {"aweme_id": "...", "count": 20, "cursor": 0}
+)
+```
+
+Known limitations:
+
+- TikTok counts more comments than it returns to a logged-out browser (hidden or filtered comments): a comment
+  with `reply_count == 3` may come with only 1 reply.
+- Signing requests in a browser goes against TikTok's terms of service: keep request volumes reasonable.
 
 ## Development:
 

@@ -21,3 +21,6 @@ STATUS_PRIVATE_ACCOUNT = 10222
 
 DOWNLOAD_DIRECTORY = "downloaded_videos"
 MAX_CONCURRENT_DOWNLOADS = 4
+
+COMMENTS_API_URL = "https://www.tiktok.com/api/comment/list/"
+REPLIES_API_URL = "https://www.tiktok.com/api/comment/list/reply/"

@@ -2,6 +2,7 @@ import argparse
 import asyncio
 import json
 import logging
+import sys
 
 from curl_cffi.requests.exceptions import RequestException
 
@@ -31,6 +32,31 @@ async def download_videos(
     )
 
 
+async def print_comments(proxy: str | None, timeout: float, video: str, with_replies: bool, headless: bool) -> None:
+    try:
+        from patchright.async_api import Error as PlaywrightError
+
+        from .browser import TikTokBrowser
+        from .comments import iter_comments
+    except ImportError as error:
+        raise TikTokError(
+            'The comments command needs the "playwright" extra: pip install "tiktok-scraper[playwright]" '
+            "(or uv sync --extra playwright), then run: patchright install chromium"
+        ) from error
+
+    counter = 0
+    try:
+        async with TikTokBrowser(headless=headless, proxy=proxy, timeout=timeout) as browser:
+            async for comment in iter_comments(browser, video, with_replies=with_replies):
+                print(json.dumps(comment.to_dict(), ensure_ascii=False), flush=True)
+                counter += 1
+    except PlaywrightError as error:
+        if "Executable doesn't exist" in str(error):
+            raise TikTokError("Chromium is not installed, run: patchright install chromium") from error
+        raise TikTokError(f"Browser error: {error}") from error
+    print(f"{counter} comments scraped.", file=sys.stderr)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(prog="tiktok-scraper")
     parser.add_argument("-v", "--verbose", help="Show debug logs", action="store_true")
@@ -48,6 +74,13 @@ def main() -> None:
     info_parser = subparsers.add_parser("info", help="Print metadata of a user account as JSON")
     info_parser.add_argument("user", help="Tiktok User Name", type=str)
 
+    comments_parser = subparsers.add_parser(
+        "comments", help='Print comments of a tiktok as JSON lines (needs the "playwright" extra)'
+    )
+    comments_parser.add_argument("video", help="Tiktok video URL or id", type=str)
+    comments_parser.add_argument("--no-replies", help="Skip replies to comments", action="store_true")
+    comments_parser.add_argument("--headed", help="Show the browser window", action="store_true")
+
     args = parser.parse_args()
     logging.basicConfig(format="%(message)s", level=logging.WARNING)
     logging.getLogger("tiktok_scraper").setLevel(logging.DEBUG if args.verbose else logging.INFO)
@@ -58,5 +91,7 @@ def main() -> None:
             asyncio.run(download_videos(client_options, args.user, args.output, args.jobs))
         elif args.command == "info":
             asyncio.run(print_user_metadata(client_options, args.user))
+        elif args.command == "comments":
+            asyncio.run(print_comments(args.proxy, args.timeout, args.video, not args.no_replies, not args.headed))
     except (TikTokError, RequestException) as error:
         raise SystemExit(f"[!] {error}") from error

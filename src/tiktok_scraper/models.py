@@ -135,3 +135,43 @@ class UserMetadata:
         data = dataclasses.asdict(self)
         data["created_at"] = self.created_at.isoformat() if self.created_at else None
         return data
+
+
+@dataclasses.dataclass
+class Comment:
+    id: str
+    video_id: str
+    text: str
+    created_at: datetime.datetime | None
+    like_count: int | None
+    reply_count: int | None
+    language: str | None
+    author_id: str | None
+    author_username: str | None
+    author_nickname: str | None
+    # Id of the comment this one replies to, None for a top-level comment.
+    parent_id: str | None
+
+    @classmethod
+    def from_api(cls, comment: dict[str, Any]) -> Comment:
+        user = comment.get("user") or {}
+        create_time = _to_int(comment.get("create_time"))
+        parent_id = str(comment.get("reply_id") or "0")
+        return cls(
+            id=comment["cid"],
+            video_id=comment.get("aweme_id", ""),
+            text=comment.get("text", ""),
+            created_at=datetime.datetime.fromtimestamp(create_time, datetime.UTC) if create_time else None,
+            like_count=_to_int(comment.get("digg_count")),
+            reply_count=_to_int(comment.get("reply_comment_total")),
+            language=comment.get("comment_language"),
+            author_id=user.get("uid"),
+            author_username=user.get("unique_id"),
+            author_nickname=user.get("nickname"),
+            parent_id=None if parent_id == "0" else parent_id,
+        )
+
+    def to_dict(self) -> dict[str, Any]:
+        data = dataclasses.asdict(self)
+        data["created_at"] = self.created_at.isoformat() if self.created_at else None
+        return data
