@@ -4,3 +4,4 @@ __pycache__
 sandbox
 captchas_images
 data
+.venv
