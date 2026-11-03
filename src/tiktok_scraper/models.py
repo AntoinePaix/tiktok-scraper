@@ -82,6 +82,29 @@ class TikTok:
         urls = [url for url in urls if urllib.parse.urlparse(url).hostname != "www.tiktok.com"]
         return list(dict.fromkeys(urls))
 
+    def to_dict(self) -> dict[str, Any]:
+        """Main fields of the tiktok (`raw` holds everything TikTok returned)."""
+        author = self._tiktok_data.get("author") or {}
+        # statsV2 holds exact values as strings, stats holds rounded values as integers.
+        stats = {**self._tiktok_data.get("stats", {}), **self._tiktok_data.get("statsV2", {})}
+        create_time = _to_int(self._tiktok_data.get("createTime"))
+        created_at = datetime.datetime.fromtimestamp(create_time, datetime.UTC) if create_time else None
+        return {
+            "id": self.id,
+            "url": self.webpage_url,
+            "description": self.description,
+            "created_at": created_at.isoformat() if created_at else None,
+            "author_username": author.get("uniqueId"),
+            "author_nickname": author.get("nickname"),
+            "is_slideshow": self.is_slideshow,
+            "duration": _to_int(self._tiktok_data.get("video", {}).get("duration")),
+            "play_count": _to_int(stats.get("playCount")),
+            "like_count": _to_int(stats.get("diggCount")),
+            "comment_count": _to_int(stats.get("commentCount")),
+            "share_count": _to_int(stats.get("shareCount")),
+            "save_count": _to_int(stats.get("collectCount")),
+        }
+
 
 @dataclasses.dataclass
 class UserMetadata:
@@ -175,3 +198,54 @@ class Comment:
         data = dataclasses.asdict(self)
         data["created_at"] = self.created_at.isoformat() if self.created_at else None
         return data
+
+
+@dataclasses.dataclass
+class SearchUser:
+    """Account found by a search. Use `get_user_metadata(client, user.username)` to get all its metadata."""
+
+    id: str | None
+    sec_uid: str | None
+    username: str | None
+    nickname: str | None
+    signature: str | None
+    follower_count: int | None
+
+    @classmethod
+    def from_api(cls, user_info: dict[str, Any]) -> SearchUser:
+        return cls(
+            id=user_info.get("uid"),
+            sec_uid=user_info.get("sec_uid"),
+            username=user_info.get("unique_id"),
+            nickname=user_info.get("nickname"),
+            signature=user_info.get("signature"),
+            follower_count=_to_int(user_info.get("follower_count")),
+        )
+
+    def to_dict(self) -> dict[str, Any]:
+        return dataclasses.asdict(self)
+
+
+@dataclasses.dataclass
+class Hashtag:
+    id: str
+    name: str
+    description: str | None
+    video_count: int | None
+    view_count: int | None
+
+    @classmethod
+    def from_api(cls, challenge_info: dict[str, Any]) -> Hashtag:
+        challenge = challenge_info["challenge"]
+        # statsV2 holds exact values as strings, stats holds rounded values as integers.
+        stats = {**challenge_info.get("stats", {}), **challenge_info.get("statsV2", {})}
+        return cls(
+            id=challenge["id"],
+            name=challenge.get("title", ""),
+            description=challenge.get("desc") or None,
+            video_count=_to_int(stats.get("videoCount")),
+            view_count=_to_int(stats.get("viewCount")),
+        )
+
+    def to_dict(self) -> dict[str, Any]:
+        return dataclasses.asdict(self)

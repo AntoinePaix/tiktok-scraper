@@ -3,6 +3,8 @@ import asyncio
 import json
 import logging
 import sys
+from functools import partial
+from typing import Callable
 
 from curl_cffi.requests.exceptions import RequestException
 
@@ -32,29 +34,41 @@ async def download_videos(
     )
 
 
-async def print_comments(proxy: str | None, timeout: float, video: str, with_replies: bool, headless: bool) -> None:
+async def print_browser_results(browser_options: dict, iterate: Callable, label: str) -> None:
+    """Start a `TikTokBrowser`, then print the results of `iterate(browser)` as JSON lines."""
     try:
         from patchright.async_api import Error as PlaywrightError
 
         from .browser import TikTokBrowser
-        from .comments import iter_comments
     except ImportError as error:
         raise TikTokError(
-            'The comments command needs the "playwright" extra: pip install "tiktok-scraper[playwright]" '
+            'This command needs the "playwright" extra: pip install "tiktok-scraper[playwright]" '
             "(or uv sync --extra playwright), then run: patchright install chromium"
         ) from error
 
     counter = 0
     try:
-        async with TikTokBrowser(headless=headless, proxy=proxy, timeout=timeout) as browser:
-            async for comment in iter_comments(browser, video, with_replies=with_replies):
-                print(json.dumps(comment.to_dict(), ensure_ascii=False), flush=True)
+        async with TikTokBrowser(**browser_options) as browser:
+            async for result in iterate(browser):
+                print(json.dumps(result.to_dict(), ensure_ascii=False), flush=True)
                 counter += 1
     except PlaywrightError as error:
         if "Executable doesn't exist" in str(error):
             raise TikTokError("Chromium is not installed, run: patchright install chromium") from error
         raise TikTokError(f"Browser error: {error}") from error
-    print(f"{counter} comments scraped.", file=sys.stderr)
+    print(f"{counter} {label} scraped.", file=sys.stderr)
+
+
+async def iter_hashtag_videos_with_info(browser, name: str, limit: int):
+    from .hashtag import get_hashtag
+    from .hashtag import iter_hashtag_videos
+
+    hashtag = await get_hashtag(browser, name)
+    print(
+        f"#{hashtag.name} (id {hashtag.id}): {hashtag.video_count} videos, {hashtag.view_count} views", file=sys.stderr
+    )
+    async for tiktok in iter_hashtag_videos(browser, hashtag, limit=limit):
+        yield tiktok
 
 
 def main() -> None:
@@ -81,6 +95,25 @@ def main() -> None:
     comments_parser.add_argument("--no-replies", help="Skip replies to comments", action="store_true")
     comments_parser.add_argument("--headed", help="Show the browser window", action="store_true")
 
+    search_parser = subparsers.add_parser(
+        "search", help='Search tiktoks (or accounts) by keyword, as JSON lines (needs the "playwright" extra)'
+    )
+    search_parser.add_argument("keyword", help="Searched keyword, e.g. ukraine", type=str)
+    search_parser.add_argument("--users", help="Search accounts instead of tiktoks", action="store_true")
+    search_parser.add_argument("-n", "--limit", help="Maximum number of results (default: 50)", type=int, default=50)
+    search_parser.add_argument("--headed", help="Show the browser window", action="store_true")
+
+    hashtag_parser = subparsers.add_parser(
+        "hashtag", help='List tiktoks of a hashtag, as JSON lines (needs the "playwright" extra)'
+    )
+    hashtag_parser.add_argument("name", help="Hashtag name, e.g. ukraine", type=str)
+    hashtag_parser.add_argument("-n", "--limit", help="Maximum number of results (default: 50)", type=int, default=50)
+    hashtag_parser.add_argument(
+        "--headless",
+        help="Hide the browser window (TikTok often refuses hashtag videos to a headless browser)",
+        action="store_true",
+    )
+
     args = parser.parse_args()
     logging.basicConfig(format="%(message)s", level=logging.WARNING)
     logging.getLogger("tiktok_scraper").setLevel(logging.DEBUG if args.verbose else logging.INFO)
@@ -92,6 +125,23 @@ def main() -> None:
         elif args.command == "info":
             asyncio.run(print_user_metadata(client_options, args.user))
         elif args.command == "comments":
-            asyncio.run(print_comments(args.proxy, args.timeout, args.video, not args.no_replies, not args.headed))
+            from .comments import iter_comments
+
+            browser_options = {"proxy": args.proxy, "timeout": args.timeout, "headless": not args.headed}
+            iterate = partial(iter_comments, video=args.video, with_replies=not args.no_replies)
+            asyncio.run(print_browser_results(browser_options, iterate, "comments"))
+        elif args.command == "search":
+            from .search import iter_search_users
+            from .search import iter_search_videos
+
+            browser_options = {"proxy": args.proxy, "timeout": args.timeout, "headless": not args.headed}
+            search = iter_search_users if args.users else iter_search_videos
+            iterate = partial(search, keyword=args.keyword, limit=args.limit)
+            asyncio.run(print_browser_results(browser_options, iterate, "accounts" if args.users else "tiktoks"))
+        elif args.command == "hashtag":
+            # A visible window by default: TikTok often refuses hashtag videos to a headless browser.
+            browser_options = {"proxy": args.proxy, "timeout": args.timeout, "headless": args.headless}
+            iterate = partial(iter_hashtag_videos_with_info, name=args.name, limit=args.limit)
+            asyncio.run(print_browser_results(browser_options, iterate, "tiktoks"))
     except (TikTokError, RequestException) as error:
         raise SystemExit(f"[!] {error}") from error

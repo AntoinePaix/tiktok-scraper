@@ -77,6 +77,11 @@ SCREEN_SIZE = {"width": 1920, "height": 1080}
 # Headless windows have no browser UI: keep the viewport smaller than the screen, like a real window.
 VIEWPORT_SIZE = {"width": 1920, "height": 993}
 
+EMPTY_RESPONSE_RETRIES = 2
+EMPTY_RESPONSE_RETRY_DELAY = 3
+
+CAPTCHA_JS = """() => !!document.querySelector('[id*="captcha" i], [class*="captcha" i]')"""
+
 REQUEST_JS = """
 async (url) => {
     const response = await fetch(url, {credentials: "include"});
@@ -222,13 +227,20 @@ class TikTokBrowser:
             self._temporary_directory.cleanup()
             self._temporary_directory = None
 
-    async def request_json(self, url: str, params: dict[str, Any], from_page: str = "video") -> dict[str, Any]:
+    async def is_showing_captcha(self) -> bool:
+        return await self._page.evaluate(CAPTCHA_JS, isolated_context=False)
+
+    async def request_json(
+        self, url: str, params: dict[str, Any], from_page: str = "video", retries: int = EMPTY_RESPONSE_RETRIES
+    ) -> dict[str, Any]:
         """Send a GET request to a TikTok API endpoint from the page, signed by TikTok's own script.
 
         Args:
             url (str): API URL, e.g. `https://www.tiktok.com/api/comment/list/`.
             params (dict[str, Any]): Endpoint-specific query parameters (the common ones are added).
             from_page (str, optional): Kind of page the request is supposed to come from.
+            retries (int, optional): Retries after an empty response (some endpoints only answer a few seconds
+                after TikTok's script started).
 
         Returns:
             dict[str, Any]: JSON response.
@@ -238,11 +250,21 @@ class TikTokBrowser:
         query = {**self.common_params, "from_page": from_page, **{key: str(value) for key, value in params.items()}}
         query = {key: value for key, value in query.items() if key not in SIGNATURE_PARAMS}
         path = urllib.parse.urlsplit(urllib.parse.urljoin(WEBPAGE_URL, url)).path
-        response = await self._page.evaluate(
-            REQUEST_JS, f"{path}?{urllib.parse.urlencode(query)}", isolated_context=False
-        )
-        if response["status"] != 200:
-            raise TikTokError(f"HTTP {response['status']} from {path}")
-        if not response["text"]:
-            raise TikTokError(f"Empty response from {path} (the request was probably not signed)")
-        return json.loads(response["text"])
+
+        for attempt in range(retries + 1):
+            response = await self._page.evaluate(
+                REQUEST_JS, f"{path}?{urllib.parse.urlencode(query)}", isolated_context=False
+            )
+            if response["status"] != 200:
+                raise TikTokError(f"HTTP {response['status']} from {path}")
+            if response["text"]:
+                return json.loads(response["text"])
+            if await self.is_showing_captcha():
+                raise TikTokError(
+                    "TikTok is showing a CAPTCHA: this browser session was flagged. Wait before retrying, slow down, "
+                    "or use another IP address"
+                )
+            if attempt < retries:
+                logger.debug("Empty response from %s, retrying in %s s", path, EMPTY_RESPONSE_RETRY_DELAY)
+                await asyncio.sleep(EMPTY_RESPONSE_RETRY_DELAY)
+        raise TikTokError(f"Empty response from {path} (the endpoint refused the request)")

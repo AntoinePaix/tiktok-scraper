@@ -24,3 +24,7 @@ MAX_CONCURRENT_DOWNLOADS = 4
 
 COMMENTS_API_URL = "https://www.tiktok.com/api/comment/list/"
 REPLIES_API_URL = "https://www.tiktok.com/api/comment/list/reply/"
+SEARCH_VIDEOS_API_URL = "https://www.tiktok.com/api/search/general/full/"
+SEARCH_USERS_API_URL = "https://www.tiktok.com/api/search/user/full/"
+HASHTAG_DETAIL_API_URL = "https://www.tiktok.com/api/challenge/detail/"
+HASHTAG_VIDEOS_API_URL = "https://www.tiktok.com/api/challenge/item_list/"

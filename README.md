@@ -1,15 +1,15 @@
 # TikTok Scraper
 
-A basic tiktok scraper to download videos, account metadata and comments.
+A basic tiktok scraper to download videos, account metadata, comments, hashtag videos and keyword search results.
 
 Videos and metadata are scraped the same way [yt-dlp](https://github.com/yt-dlp/yt-dlp) does: the user page
 rehydration data gives the account `secUid`, then the `api/creator/item_list/` web API is paginated by timestamp
 cursor. Requests impersonate a real Chrome browser with [curl_cffi](https://github.com/lexiforest/curl_cffi), so no
 browser is needed.
 
-Other TikTok API endpoints (comments, ...) only answer requests signed by TikTok's obfuscated JavaScript. For those,
-the optional `playwright` extra opens a TikTok page in a Chromium browser and sends the requests from inside the
-page, where TikTok's own script signs them (see [Browser endpoints](#browser-endpoints-comments)).
+Other TikTok API endpoints (comments, search, hashtags, ...) only answer requests signed by TikTok's obfuscated JavaScript.
+For those, the optional `playwright` extra opens a TikTok page in a Chromium browser and sends the requests from
+inside the page, where TikTok's own script signs them (see [Browser endpoints](#browser-endpoints-comments-search-hashtags)).
 
 ## How to install:
 
@@ -38,7 +38,7 @@ pip ignores `uv.lock` and installs the latest versions allowed by `pyproject.tom
 versions, export them once with `uv export --format requirements.txt > requirements.txt`, then run
 `pip install -r requirements.txt`.
 
-### Browser endpoints (comments)
+### Browser endpoints (comments, search, hashtags)
 
 The `playwright` extra installs [patchright](https://github.com/Kaliiiiiiiiii-Vinyzu/patchright-python), a
 patched Playwright which removes the main automation leaks, then a Chromium build:
@@ -64,6 +64,14 @@ uv run tiktok-scraper info charlidamelio
 uv run tiktok-scraper comments https://www.tiktok.com/@emmanuelmacron/video/7703703665818733857 > comments.jsonl
 uv run tiktok-scraper comments 7703703665818733857 --no-replies   # top-level comments only
 uv run tiktok-scraper comments 7703703665818733857 --headed       # show the browser window
+
+# Search tiktoks, or accounts, by keyword as JSON lines (needs the "playwright" extra)
+uv run tiktok-scraper search ukraine > ukraine.jsonl     # first 50 tiktoks
+uv run tiktok-scraper search ukraine -n 200              # first 200 tiktoks
+uv run tiktok-scraper search ukraine --users -n 10       # first 10 accounts
+
+# List tiktoks of a hashtag as JSON lines (needs the "playwright" extra, opens a browser window)
+uv run tiktok-scraper hashtag ukraine -n 200 > ukraine.jsonl
 ```
 
 Global options go before the command:
@@ -173,7 +181,7 @@ asyncio.run(main())
 `download_user_videos` uses the client you pass and doesn't close it. Without one, it creates a client with
 default options.
 
-### Comments (browser)
+### Comments, search and hashtags (browser)
 
 ```python
 import asyncio
@@ -195,6 +203,44 @@ asyncio.run(main())
 `Comment` fields: `id`, `video_id`, `text`, `created_at`, `like_count`, `reply_count`, `language`, `author_id`,
 `author_username`, `author_nickname`, `parent_id` (`None` for a top-level comment).
 
+Keyword search, with the same browser:
+
+```python
+from tiktok_scraper import iter_search_users
+from tiktok_scraper import iter_search_videos
+
+async with TikTokBrowser() as browser:
+    async for tiktok in iter_search_videos(browser, "ukraine", limit=100):
+        print(tiktok.webpage_url, tiktok.to_dict()["play_count"])
+
+    async for user in iter_search_users(browser, "ukraine", limit=10):
+        print(user.username, user.follower_count)
+```
+
+Search results are `TikTok` objects, like the videos of a user: `tiktok.to_dict()` gives the main fields (`id`,
+`url`, `description`, `created_at`, `author_username`, `play_count`, `like_count`, ...) and `tiktok.raw` everything
+TikTok returned. Accounts are `SearchUser` objects (`id`, `sec_uid`, `username`, `nickname`, `signature`,
+`follower_count`): use `get_user_metadata(client, user.username)` for all their metadata.
+
+Hashtag videos, in two steps: `get_hashtag` gets the hashtag id from its name (`api/challenge/detail/`), then
+`iter_hashtag_videos` lists its tiktoks from that id (`api/challenge/item_list/`):
+
+```python
+from tiktok_scraper import get_hashtag
+from tiktok_scraper import iter_hashtag_videos
+
+# TikTok often refuses hashtag videos to a headless browser: use a visible window.
+async with TikTokBrowser(headless=False) as browser:
+    hashtag = await get_hashtag(browser, "ukraine")
+    print(hashtag.id, hashtag.video_count, hashtag.view_count)  # 451042 9597506 192217240529
+
+    async for tiktok in iter_hashtag_videos(browser, hashtag, limit=100):
+        print(tiktok.webpage_url)
+```
+
+`iter_hashtag_videos(browser, "ukraine")` also accepts the name and does both steps. On a server without a display,
+run the visible browser in a virtual one: `xvfb-run uv run tiktok-scraper hashtag ukraine`.
+
 `TikTokBrowser` options:
 
 | Option | Default | Description |
@@ -209,18 +255,31 @@ In headless mode, the browser is patched to look like a regular Chrome: user age
 real screen size. At start, it opens `https://www.tiktok.com/explore` and waits for TikTok's script to get its
 `msToken`, which takes a few seconds.
 
-Any other web API endpoint can be called the same way, the common parameters (`device_id`, ...) are added:
+#### Adding an endpoint
+
+Any web API endpoint can be called with `TikTokBrowser.request_json`. It adds the common parameters
+(`device_id`, ...), lets TikTok's script add the signatures, and retries empty responses twice:
 
 ```python
 data = await browser.request_json(
-    "https://www.tiktok.com/api/comment/list/", {"aweme_id": "...", "count": 20, "cursor": 0}
+    "https://www.tiktok.com/api/search/user/full/",
+    {"keyword": "ukraine", "offset": 0, "cursor": 0, "count": 10},
+    from_page="search",
 )
 ```
+
+To find an endpoint and its parameters, open the matching TikTok page in your browser, filter the Network tab of
+the developer tools on `/api/`, and keep the parameters that are not common ones (`keyword`, `cursor`, ...).
 
 Known limitations:
 
 - TikTok counts more comments than it returns to a logged-out browser (hidden or filtered comments): a comment
   with `reply_count == 3` may come with only 1 reply.
+- Hashtag videos (`api/challenge/item_list/`) are often refused (empty response) to a headless browser, even with
+  the patches: the `hashtag` command opens a visible window by default (`--headless` to hide it).
+- A hashtag's feed also contains videos without the hashtag in their description: TikTok's ranking, not a bug.
+- When TikTok shows a CAPTCHA, requests fail with a `TikTokError` saying so. The scraper doesn't solve CAPTCHAs:
+  wait, slow down, or change IP address.
 - Signing requests in a browser goes against TikTok's terms of service: keep request volumes reasonable.
 
 ## Development:
