@@ -57,6 +57,9 @@ uv run tiktok-scraper videos charlidamelio
 # Same, into another directory with 8 parallel downloads
 uv run tiktok-scraper videos charlidamelio -o videos -j 8
 
+# Only the 20 last published tiktoks
+uv run tiktok-scraper videos charlidamelio -n 20
+
 # Print account metadata (profile + statistics) as JSON
 uv run tiktok-scraper info charlidamelio
 

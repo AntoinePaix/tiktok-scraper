@@ -23,10 +23,10 @@ async def print_user_metadata(client_options: dict, username: str) -> None:
 
 
 async def download_videos(
-    client_options: dict, username: str, output_directory: str, max_concurrent_downloads: int
+    client_options: dict, username: str, output_directory: str, max_concurrent_downloads: int, limit: int | None
 ) -> None:
     async with TikTokClient(**client_options) as client:
-        report = await download_user_videos(username, output_directory, max_concurrent_downloads, client)
+        report = await download_user_videos(username, output_directory, max_concurrent_downloads, client, limit)
     print(
         f"Done in {report.directory}: {len(report.downloaded)} downloaded, "
         f"{len(report.already_downloaded)} already downloaded, "
@@ -78,11 +78,14 @@ def main() -> None:
     parser.add_argument("--timeout", help="Timeout of each request, in seconds", type=float, default=30)
     subparsers = parser.add_subparsers(dest="command", required=True)
 
-    videos_parser = subparsers.add_parser("videos", help="Download all videos of a user")
+    videos_parser = subparsers.add_parser("videos", help="Download the videos of a user, newest first")
     videos_parser.add_argument("user", help="Tiktok User Name", type=str)
     videos_parser.add_argument("-o", "--output", help="Output directory", default=DOWNLOAD_DIRECTORY)
     videos_parser.add_argument(
         "-j", "--jobs", help="Number of parallel downloads", type=int, default=MAX_CONCURRENT_DOWNLOADS
+    )
+    videos_parser.add_argument(
+        "-n", "--limit", help="Only the N last published tiktoks (default: all)", type=int, default=None
     )
 
     info_parser = subparsers.add_parser("info", help="Print metadata of a user account as JSON")
@@ -121,7 +124,7 @@ def main() -> None:
     client_options = {"proxy": args.proxy, "timeout": args.timeout}
     try:
         if args.command == "videos":
-            asyncio.run(download_videos(client_options, args.user, args.output, args.jobs))
+            asyncio.run(download_videos(client_options, args.user, args.output, args.jobs, args.limit))
         elif args.command == "info":
             asyncio.run(print_user_metadata(client_options, args.user))
         elif args.command == "comments":

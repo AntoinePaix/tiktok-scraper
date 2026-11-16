@@ -46,14 +46,19 @@ async def get_user_metadata(client: TikTokClient, username: str) -> UserMetadata
     return UserMetadata.from_user_info(await get_user_info(client, username))
 
 
-async def iter_user_tiktoks(client: TikTokClient, sec_uid: str, referer: str) -> AsyncIterator[TikTok]:
-    """Yield every tiktok of an account, newest to oldest.
+async def iter_user_tiktoks(
+    client: TikTokClient, sec_uid: str, referer: str, limit: int | None = None
+) -> AsyncIterator[TikTok]:
+    """Yield the tiktoks of an account, newest to oldest.
 
     Args:
         client (TikTokClient): Client which already visited the user page (to get cookies).
         sec_uid (str): Secondary user id of the account (`UserMetadata.sec_uid`).
         referer (str): User page URL.
+        limit (int, optional): Maximum number of tiktoks, e.g. 20 for the 20 last published. Defaults to all.
     """
+    if limit is not None and limit <= 0:
+        return
     seen_ids: set[str] = set()
     cursor = int(time.time() * 1e3)
 
@@ -74,6 +79,8 @@ async def iter_user_tiktoks(client: TikTokClient, sec_uid: str, referer: str) ->
             if item.get("id") and item["id"] not in seen_ids:
                 seen_ids.add(item["id"])
                 yield TikTok(item)
+                if limit is not None and len(seen_ids) >= limit:
+                    return
 
         old_cursor = cursor
         cursor = int(items[-1]["createTime"]) * 1000 if items else 0

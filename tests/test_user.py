@@ -62,6 +62,20 @@ def test_iter_user_tiktoks_paginates_by_create_time(item):
     assert client.queries[0]["type"] == "1"
 
 
+def test_iter_user_tiktoks_limit(item):
+    first_page = [make_item(item, str(i), 1_700_000_300 - i) for i in range(15)]
+    client = FakeClient(pages=[{"itemList": first_page, "hasMorePrevious": True}])
+
+    async def run(limit):
+        referer = "https://www.tiktok.com/@user"
+        return [tiktok.id async for tiktok in iter_user_tiktoks(client, "sec_uid", referer, limit=limit)]
+
+    assert asyncio.run(run(5)) == ["0", "1", "2", "3", "4"]
+    # Stops without requesting the next page.
+    assert len(client.queries) == 1
+    assert asyncio.run(run(0)) == []
+
+
 def test_iter_user_tiktoks_resets_device_id_on_same_page(item):
     page = {"itemList": [make_item(item, "1", 1_700_000_100)], "hasMorePrevious": True}
     client = FakeClient(pages=[page, page, page, page])

@@ -101,8 +101,9 @@ async def download_user_videos(
     output_directory: str = DOWNLOAD_DIRECTORY,
     max_concurrent_downloads: int = MAX_CONCURRENT_DOWNLOADS,
     client: TikTokClient | None = None,
+    limit: int | None = None,
 ) -> DownloadReport:
-    """Main method to download all videos of a TikTok user.
+    """Main method to download the videos of a TikTok user.
 
     Args:
         username (str): Tiktok username to scrape.
@@ -110,13 +111,15 @@ async def download_user_videos(
         max_concurrent_downloads (int, optional): Number of videos downloaded in parallel.
         client (TikTokClient, optional): Client to use (e.g. configured with a proxy). It is not closed afterwards.
             Defaults to a new client with default options.
+        limit (int, optional): Only the `limit` last published tiktoks (already downloaded ones and slideshows
+            included). Defaults to all.
 
     Returns:
         DownloadReport: Outcome of the download of each tiktok.
     """
     if client is None:
         async with TikTokClient() as client:
-            return await download_user_videos(username, output_directory, max_concurrent_downloads, client)
+            return await download_user_videos(username, output_directory, max_concurrent_downloads, client, limit)
 
     user_info = await get_user_info(client, username)
     user = user_info["user"]
@@ -126,6 +129,6 @@ async def download_user_videos(
     semaphore = asyncio.Semaphore(max_concurrent_downloads)
     referer = USER_URL_FORMAT.format(username=user["uniqueId"])
     async with asyncio.TaskGroup() as task_group:
-        async for tiktok in iter_user_tiktoks(client, user["secUid"], referer):
+        async for tiktok in iter_user_tiktoks(client, user["secUid"], referer, limit=limit):
             task_group.create_task(process_tiktok(client, tiktok, report, semaphore))
     return report
