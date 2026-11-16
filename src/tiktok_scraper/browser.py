@@ -26,6 +26,7 @@ try:
     from patchright.async_api import BrowserContext
     from patchright.async_api import Page
     from patchright.async_api import Playwright
+    from patchright.async_api import TimeoutError as PlaywrightTimeoutError
     from patchright.async_api import async_playwright
 except ImportError as error:  # pragma: no cover - depends on the installed extras
     raise ImportError(
@@ -36,6 +37,9 @@ except ImportError as error:  # pragma: no cover - depends on the installed extr
 logger = logging.getLogger(__name__)
 
 WARM_UP_URL = "https://www.tiktok.com/explore"
+# TikTok sometimes serves a page without a device id, which then makes no API request: reload it.
+WARM_UP_ATTEMPTS = 3
+WARM_UP_REQUEST_TIMEOUT = 15
 SIGNATURE_PARAMS = frozenset({"X-Bogus", "X-Gnarly", "X-Dynosaur", "msToken"})
 # Query parameters the web app sends with every API request (endpoint-specific ones are left out).
 COMMON_PARAMS = frozenset(
@@ -198,9 +202,24 @@ class TikTokBrowser:
             query = urllib.parse.parse_qs(urllib.parse.urlsplit(request.url).query)
             return "/api/" in request.url and "X-Gnarly" in query and "device_id" in query
 
-        async with self._page.expect_request(is_signed_api_request) as request_info:
-            await self._page.goto(self.warm_up_url, wait_until="domcontentloaded")
-        request = await request_info.value
+        for attempt in range(1, WARM_UP_ATTEMPTS + 1):
+            try:
+                async with self._page.expect_request(
+                    is_signed_api_request, timeout=WARM_UP_REQUEST_TIMEOUT * 1000
+                ) as request_info:
+                    if attempt == 1:
+                        await self._page.goto(self.warm_up_url, wait_until="domcontentloaded")
+                    else:
+                        await self._page.reload(wait_until="domcontentloaded")
+                request = await request_info.value
+                break
+            except PlaywrightTimeoutError:
+                logger.debug("No signed API request from %s (attempt %s)", self.warm_up_url, attempt)
+        else:
+            raise TikTokError(
+                f"{self.warm_up_url} made no signed API request after {WARM_UP_ATTEMPTS} loads: "
+                "TikTok may be blocking this browser or IP address"
+            )
         query = urllib.parse.parse_qs(urllib.parse.urlsplit(request.url).query)
         self.common_params = {key: values[0] for key, values in query.items() if key in COMMON_PARAMS}
         logger.debug("Common API parameters: %s", self.common_params)
