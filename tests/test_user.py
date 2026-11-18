@@ -6,8 +6,7 @@ import pytest
 from tiktok_scraper import TikTokError
 from tiktok_scraper import get_user_metadata
 from tiktok_scraper import iter_user_tiktoks
-from tiktok_scraper.constants import STATUS_PRIVATE_ACCOUNT
-from tiktok_scraper.constants import STATUS_USER_NOT_FOUND
+from tiktok_scraper.constants import TikTokStatus
 
 
 class FakeClient:
@@ -96,8 +95,8 @@ def test_get_user_metadata(user_info):
 @pytest.mark.parametrize(
     ("detail", "message"),
     [
-        ({"statusCode": STATUS_USER_NOT_FOUND}, "not found"),
-        ({"statusCode": STATUS_PRIVATE_ACCOUNT, "userInfo": {}}, "private"),
+        ({"statusCode": TikTokStatus.USER_NOT_FOUND}, "not found"),
+        ({"statusCode": TikTokStatus.PRIVATE_ACCOUNT, "userInfo": {}}, "private"),
         ({}, "Unable to extract"),
     ],
 )

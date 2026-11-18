@@ -12,6 +12,7 @@ from .constants import DOWNLOAD_DIRECTORY
 from .constants import MAX_CONCURRENT_DOWNLOADS
 from .constants import USER_URL_FORMAT
 from .models import TikTok
+from .progress import Observer
 from .user import get_user_info
 from .user import iter_user_tiktoks
 
@@ -29,7 +30,14 @@ class DownloadReport:
     failed: list[str] = dataclasses.field(default_factory=list)
 
 
-async def download_video(client: TikTokClient, url: str, filename: str, directory: str, referer: str) -> bool:
+async def download_video(
+    client: TikTokClient,
+    url: str,
+    filename: str,
+    directory: str,
+    referer: str,
+    progress: Observer | None = None,
+) -> bool:
     """Function to download video from tiktok.
 
     Args:
@@ -38,6 +46,7 @@ async def download_video(client: TikTokClient, url: str, filename: str, director
         filename (str): Name of the file to download the video.
         directory (str): Directory where to write the video.
         referer (str): Video page URL.
+        progress (Observer, optional): Told when the download starts and advances.
 
     Returns:
         bool: True if the video has been downloaded.
@@ -49,9 +58,14 @@ async def download_video(client: TikTokClient, url: str, filename: str, director
             if response.status_code != 200 or not response.headers.get("content-type", "").startswith("video/"):
                 logger.debug("Rejected %s (HTTP %s)", url, response.status_code)
                 return False
+            if progress:
+                size = response.headers.get("content-length")
+                progress.started(filename, int(size) if size else None)
             async with aiofiles.open(partial_path_file, mode="wb") as file:
                 async for chunk in response.aiter_content():
                     await file.write(chunk)
+                    if progress:
+                        progress.advanced(filename, len(chunk))
     except Exception:
         logger.debug("Failed to download %s", url, exc_info=True)
         if os.path.exists(partial_path_file):
@@ -74,26 +88,36 @@ async def get_tiktok_detail(client: TikTokClient, tiktok: TikTok) -> TikTok:
 
 
 async def process_tiktok(
-    client: TikTokClient, tiktok: TikTok, report: DownloadReport, semaphore: asyncio.Semaphore
+    client: TikTokClient,
+    tiktok: TikTok,
+    report: DownloadReport,
+    semaphore: asyncio.Semaphore,
+    progress: Observer | None = None,
 ) -> None:
     async with semaphore:
-        if tiktok.is_slideshow:
-            logger.info("[-] %s is a slideshow, skipped.", tiktok.id)
-            report.skipped_slideshows.append(tiktok.id)
-            return
-        if os.path.exists(os.path.join(report.directory, tiktok.video_filename)):
-            logger.info("[=] %s already downloaded.", tiktok.video_filename)
-            report.already_downloaded.append(tiktok.id)
-            return
-
-        detailed_tiktok = await get_tiktok_detail(client, tiktok)
-        for url in detailed_tiktok.video_urls:
-            if await download_video(client, url, tiktok.video_filename, report.directory, referer=tiktok.webpage_url):
-                logger.info("[+] Download %s", tiktok.video_filename)
-                report.downloaded.append(tiktok.id)
+        try:
+            if tiktok.is_slideshow:
+                logger.info("[-] %s is a slideshow, skipped.", tiktok.id)
+                report.skipped_slideshows.append(tiktok.id)
                 return
-        logger.warning("[!] Unable to download %s", tiktok.video_filename)
-        report.failed.append(tiktok.id)
+            if os.path.exists(os.path.join(report.directory, tiktok.video_filename)):
+                logger.info("[=] %s already downloaded.", tiktok.video_filename)
+                report.already_downloaded.append(tiktok.id)
+                return
+
+            detailed_tiktok = await get_tiktok_detail(client, tiktok)
+            for url in detailed_tiktok.video_urls:
+                if await download_video(
+                    client, url, tiktok.video_filename, report.directory, tiktok.webpage_url, progress
+                ):
+                    logger.info("[+] Download %s", tiktok.video_filename)
+                    report.downloaded.append(tiktok.id)
+                    return
+            logger.warning("[!] Unable to download %s", tiktok.video_filename)
+            report.failed.append(tiktok.id)
+        finally:
+            if progress:
+                progress.finished(tiktok.video_filename)
 
 
 async def download_user_videos(
@@ -102,6 +126,7 @@ async def download_user_videos(
     max_concurrent_downloads: int = MAX_CONCURRENT_DOWNLOADS,
     client: TikTokClient | None = None,
     limit: int | None = None,
+    progress: Observer | None = None,
 ) -> DownloadReport:
     """Main method to download the videos of a TikTok user.
 
@@ -113,13 +138,17 @@ async def download_user_videos(
             Defaults to a new client with default options.
         limit (int, optional): Only the `limit` last published tiktoks (already downloaded ones and slideshows
             included). Defaults to all.
+        progress (Observer, optional): Told about each tiktok queued, started, advanced and finished, e.g. a
+            `tiktok_scraper.progress.ProgressBars` for a live progress bar.
 
     Returns:
         DownloadReport: Outcome of the download of each tiktok.
     """
     if client is None:
         async with TikTokClient() as client:
-            return await download_user_videos(username, output_directory, max_concurrent_downloads, client, limit)
+            return await download_user_videos(
+                username, output_directory, max_concurrent_downloads, client, limit, progress
+            )
 
     user_info = await get_user_info(client, username)
     user = user_info["user"]
@@ -130,5 +159,7 @@ async def download_user_videos(
     referer = USER_URL_FORMAT.format(username=user["uniqueId"])
     async with asyncio.TaskGroup() as task_group:
         async for tiktok in iter_user_tiktoks(client, user["secUid"], referer, limit=limit):
-            task_group.create_task(process_tiktok(client, tiktok, report, semaphore))
+            if progress:
+                progress.queued()
+            task_group.create_task(process_tiktok(client, tiktok, report, semaphore, progress))
     return report

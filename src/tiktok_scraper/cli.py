@@ -1,5 +1,6 @@
 import argparse
 import asyncio
+import contextlib
 import json
 import logging
 import sys
@@ -13,6 +14,7 @@ from .client import TikTokError
 from .constants import DOWNLOAD_DIRECTORY
 from .constants import MAX_CONCURRENT_DOWNLOADS
 from .downloader import download_user_videos
+from .progress import ProgressBars
 from .user import get_user_metadata
 
 
@@ -23,10 +25,18 @@ async def print_user_metadata(client_options: dict, username: str) -> None:
 
 
 async def download_videos(
-    client_options: dict, username: str, output_directory: str, max_concurrent_downloads: int, limit: int | None
+    client_options: dict,
+    username: str,
+    output_directory: str,
+    max_concurrent_downloads: int,
+    limit: int | None,
+    progress: ProgressBars | None,
 ) -> None:
     async with TikTokClient(**client_options) as client:
-        report = await download_user_videos(username, output_directory, max_concurrent_downloads, client, limit)
+        with progress or contextlib.nullcontext():
+            report = await download_user_videos(
+                username, output_directory, max_concurrent_downloads, client, limit, progress
+            )
     print(
         f"Done in {report.directory}: {len(report.downloaded)} downloaded, "
         f"{len(report.already_downloaded)} already downloaded, "
@@ -87,6 +97,7 @@ def main() -> None:
     videos_parser.add_argument(
         "-n", "--limit", help="Only the N last published tiktoks (default: all)", type=int, default=None
     )
+    videos_parser.add_argument("--no-progress", help="Hide the progress bars", action="store_true")
 
     info_parser = subparsers.add_parser("info", help="Print metadata of a user account as JSON")
     info_parser.add_argument("user", help="Tiktok User Name", type=str)
@@ -118,13 +129,19 @@ def main() -> None:
     )
 
     args = parser.parse_args()
-    logging.basicConfig(format="%(message)s", level=logging.WARNING)
+
+    # Live bars need a terminal; otherwise, and with --no-progress, progress is plain log lines.
+    bars = None
+    if args.command == "videos" and not args.no_progress and ProgressBars().usable:
+        bars = ProgressBars()
+    handler = bars.log_handler() if bars else logging.StreamHandler()
+    logging.basicConfig(format="%(message)s", level=logging.WARNING, handlers=[handler])
     logging.getLogger("tiktok_scraper").setLevel(logging.DEBUG if args.verbose else logging.INFO)
 
     client_options = {"proxy": args.proxy, "timeout": args.timeout}
     try:
         if args.command == "videos":
-            asyncio.run(download_videos(client_options, args.user, args.output, args.jobs, args.limit))
+            asyncio.run(download_videos(client_options, args.user, args.output, args.jobs, args.limit, bars))
         elif args.command == "info":
             asyncio.run(print_user_metadata(client_options, args.user))
         elif args.command == "comments":

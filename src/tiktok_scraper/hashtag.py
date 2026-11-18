@@ -11,7 +11,7 @@ from typing import AsyncIterator
 from .client import TikTokError
 from .constants import HASHTAG_DETAIL_API_URL
 from .constants import HASHTAG_VIDEOS_API_URL
-from .constants import STATUS_OK
+from .constants import TikTokStatus
 from .models import Hashtag
 from .models import TikTok
 
@@ -31,7 +31,7 @@ async def get_hashtag(browser: TikTokBrowser, name: str) -> Hashtag:
     name = name.lstrip("#")
     data = await browser.request_json(HASHTAG_DETAIL_API_URL, {"challengeName": name}, from_page="hashtag")
     challenge_info = data.get("challengeInfo") or {}
-    if data.get("statusCode", STATUS_OK) != STATUS_OK or not challenge_info.get("challenge", {}).get("id"):
+    if data.get("statusCode", TikTokStatus.OK) != TikTokStatus.OK or not challenge_info.get("challenge", {}).get("id"):
         raise TikTokError(f"Hashtag '#{name}' not found (status code {data.get('statusCode')})")
     return Hashtag.from_api(challenge_info)
 

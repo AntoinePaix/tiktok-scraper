@@ -60,6 +60,9 @@ uv run tiktok-scraper videos charlidamelio -o videos -j 8
 # Only the 20 last published tiktoks
 uv run tiktok-scraper videos charlidamelio -n 20
 
+# Hide the progress bars (plain log lines)
+uv run tiktok-scraper videos charlidamelio --no-progress
+
 # Print account metadata (profile + statistics) as JSON
 uv run tiktok-scraper info charlidamelio
 
@@ -143,6 +146,12 @@ async def main():
 
 asyncio.run(main())
 ```
+
+The `videos` command shows a live [rich](https://github.com/Textualize/rich) progress bar per
+download plus a total, when stderr is a terminal; otherwise (piped, or with `--no-progress`) it
+falls back to plain log lines. From Python, pass a `tiktok_scraper.progress.ProgressBars` as the
+`progress=` argument of `download_user_videos` to get the same bars (any object implementing the
+`Observer` protocol works).
 
 The library logs progress with the `logging` module under the `tiktok_scraper` logger.
 

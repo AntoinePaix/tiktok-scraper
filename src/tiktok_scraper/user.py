@@ -8,18 +8,17 @@ from typing import AsyncIterator
 
 from .client import TikTokClient
 from .client import TikTokError
-from .constants import ONE_WEEK_MS
-from .constants import STATUS_OK
-from .constants import STATUS_PRIVATE_ACCOUNT
-from .constants import STATUS_USER_BANNED
-from .constants import STATUS_USER_NOT_FOUND
-from .constants import TIKTOK_EPOCH_MS
 from .constants import USER_ITEM_LIST_API_URL
 from .constants import USER_URL_FORMAT
+from .constants import TikTokStatus
 from .models import TikTok
 from .models import UserMetadata
 
 MAX_SAME_PAGE_RETRIES = 3
+
+# Timestamp (ms) of September 2016: going further back than this means TikTok did not exist yet.
+TIKTOK_EPOCH_MS = 1472706000000
+ONE_WEEK_MS = 7 * 86_400_000
 
 
 async def get_user_info(client: TikTokClient, username: str) -> dict[str, Any]:
@@ -27,15 +26,15 @@ async def get_user_info(client: TikTokClient, username: str) -> dict[str, Any]:
     username = username.lstrip("@").lower()
     universal_data = await client.get_universal_data(USER_URL_FORMAT.format(username=username))
     detail = universal_data.get("webapp.user-detail") or {}
-    status = detail.get("statusCode", STATUS_OK)
+    status = detail.get("statusCode", TikTokStatus.OK)
 
-    if status == STATUS_USER_NOT_FOUND:
+    if status == TikTokStatus.USER_NOT_FOUND:
         raise TikTokError(f"User '{username}' not found")
-    if status == STATUS_USER_BANNED:
+    if status == TikTokStatus.USER_BANNED:
         raise TikTokError(f"User '{username}' is banned")
     user_info = detail.get("userInfo") or {}
     if not user_info.get("user", {}).get("secUid"):
-        if status == STATUS_PRIVATE_ACCOUNT:
+        if status == TikTokStatus.PRIVATE_ACCOUNT:
             raise TikTokError(f"User '{username}' has a private account")
         raise TikTokError(f"Unable to extract metadata of user '{username}' (status code {status})")
     return user_info

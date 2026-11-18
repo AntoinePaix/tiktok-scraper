@@ -12,9 +12,12 @@ from typing import Any
 
 from curl_cffi.requests import AsyncSession
 
-from .constants import IMPERSONATE_TARGET
-from .constants import UNIVERSAL_DATA_SCRIPT_ID
 from .constants import WEBPAGE_URL
+
+UNIVERSAL_DATA_SCRIPT_ID = "__UNIVERSAL_DATA_FOR_REHYDRATION__"
+
+# Browser fingerprint impersonated by curl_cffi (TLS + HTTP/2 + headers), like yt-dlp's `impersonate=True`.
+IMPERSONATE_TARGET = "chrome"
 
 
 class TikTokError(Exception):
