@@ -2,24 +2,28 @@
 
 from __future__ import annotations
 
+from collections.abc import AsyncIterator
 from typing import TYPE_CHECKING
 from typing import Any
-from typing import AsyncIterator
 
-from .constants import SEARCH_USERS_API_URL
-from .constants import SEARCH_VIDEOS_API_URL
-from .models import SearchUser
-from .models import TikTok
+from tiktok_scraper.constants import SEARCH_USERS_API_URL
+from tiktok_scraper.constants import SEARCH_VIDEOS_API_URL
+from tiktok_scraper.models import SearchUser
+from tiktok_scraper.models import TikTok
 
 if TYPE_CHECKING:
-    from .browser import TikTokBrowser
+    from tiktok_scraper.browser import TikTokBrowser
 
 VIDEOS_PER_REQUEST = 12
 USERS_PER_REQUEST = 10
 
 
 async def _paginate_search(
-    browser: TikTokBrowser, url: str, keyword: str, list_key: str, count: int
+    browser: TikTokBrowser,
+    url: str,
+    keyword: str,
+    list_key: str,
+    count: int,
 ) -> AsyncIterator[dict[str, Any]]:
     cursor = 0
     search_id = None
@@ -62,7 +66,9 @@ async def iter_search_videos(browser: TikTokBrowser, keyword: str, limit: int | 
 
 
 async def iter_search_users(
-    browser: TikTokBrowser, keyword: str, limit: int | None = None
+    browser: TikTokBrowser,
+    keyword: str,
+    limit: int | None = None,
 ) -> AsyncIterator[SearchUser]:
     """Yield the accounts found by a keyword search.
 

@@ -1,59 +1,128 @@
-import argparse
+"""Command-line interface: ``tiktok-scraper videos|info|comments|search|hashtag ...``."""
+
+from __future__ import annotations
+
 import asyncio
 import contextlib
 import json
 import logging
-import sys
+from collections.abc import Callable
 from functools import partial
-from typing import Callable
+from pathlib import Path
+from typing import Annotated
 
+import typer
 from curl_cffi.requests.exceptions import RequestException
+from rich.console import Console
+from rich.logging import RichHandler
 
-from .client import TikTokClient
-from .client import TikTokError
-from .constants import DOWNLOAD_DIRECTORY
-from .constants import MAX_CONCURRENT_DOWNLOADS
-from .downloader import download_user_videos
-from .progress import ProgressBars
-from .user import get_user_metadata
+from tiktok_scraper import __version__
+from tiktok_scraper.client import IMPERSONATE_TARGET
+from tiktok_scraper.client import TikTokClient
+from tiktok_scraper.client import TikTokError
+from tiktok_scraper.constants import DOWNLOAD_DIRECTORY
+from tiktok_scraper.constants import MAX_CONCURRENT_DOWNLOADS
+from tiktok_scraper.downloader import download_user_videos
+from tiktok_scraper.progress import ProgressBars
+from tiktok_scraper.user import get_user_metadata
+
+console = Console(stderr=True)
+app = typer.Typer(
+    help="Download TikTok videos, account metadata, comments, hashtag videos and search results.",
+    no_args_is_help=True,
+    rich_markup_mode="rich",
+    context_settings={"help_option_names": ["-h", "--help"]},
+)
+
+# Options shared by every command (same names in all the scraper repos).
+ProxyOpt = Annotated[
+    str | None,
+    typer.Option(
+        "--proxy",
+        "-x",
+        envvar="TIKTOK_PROXY",
+        help=(
+            "Proxy URL, e.g. http://user:pass@host:8080 or socks5h://host:1080. "
+            "Without it, the HTTPS_PROXY / ALL_PROXY environment variables apply."
+        ),
+        rich_help_panel="Network",
+    ),
+]
+TimeoutOpt = Annotated[
+    float,
+    typer.Option("--timeout", min=1, help="Timeout of each request, in seconds.", rich_help_panel="Network"),
+]
+ImpersonateOpt = Annotated[
+    str,
+    typer.Option("--impersonate", help="curl_cffi browser fingerprint.", rich_help_panel="Network"),
+]
+VerboseOpt = Annotated[int, typer.Option("--verbose", "-v", count=True, help="Show debug logs.")]
+QuietOpt = Annotated[bool, typer.Option("--quiet", "-q", help="Only show warnings and errors.")]
+
+# Options of the browser commands.
+LimitOpt = Annotated[int, typer.Option("--limit", "-n", min=1, help="Maximum number of results.")]
+HeadlessOpt = Annotated[
+    bool,
+    typer.Option("--headless/--headed", help="Hide the browser window, or show it.", rich_help_panel="Browser"),
+]
 
 
-async def print_user_metadata(client_options: dict, username: str) -> None:
+def _setup_logging(verbose: int, quiet: bool, log_console: Console = console) -> None:
+    level = logging.WARNING if quiet else logging.DEBUG if verbose else logging.INFO
+    logging.basicConfig(
+        level=logging.WARNING,
+        format="%(message)s",
+        handlers=[RichHandler(console=log_console, show_path=False)],
+        force=True,
+    )
+    logging.getLogger("tiktok_scraper").setLevel(level)
+
+
+def _execute(coro) -> None:
+    try:
+        asyncio.run(coro)
+    except (TikTokError, RequestException) as error:
+        console.print(f"[red]✗[/] {error}")
+        raise typer.Exit(1) from error
+    except KeyboardInterrupt:
+        console.print("[yellow]Interrupted[/]")
+        raise typer.Exit(130) from None
+
+
+async def _print_user_metadata(client_options: dict, username: str) -> None:
     async with TikTokClient(**client_options) as client:
         metadata = await get_user_metadata(client, username)
     print(json.dumps(metadata.to_dict(), indent=2, ensure_ascii=False))
 
 
-async def download_videos(
+async def _download_videos(
     client_options: dict,
     username: str,
-    output_directory: str,
-    max_concurrent_downloads: int,
+    output: Path,
+    concurrency: int,
     limit: int | None,
     progress: ProgressBars | None,
 ) -> None:
     async with TikTokClient(**client_options) as client:
         with progress or contextlib.nullcontext():
-            report = await download_user_videos(
-                username, output_directory, max_concurrent_downloads, client, limit, progress
-            )
-    print(
-        f"Done in {report.directory}: {len(report.downloaded)} downloaded, "
+            report = await download_user_videos(username, str(output), concurrency, client, limit, progress)
+    console.print(
+        f"[green]✓[/] {report.directory}: {len(report.downloaded)} downloaded, "
         f"{len(report.already_downloaded)} already downloaded, "
-        f"{len(report.skipped_slideshows)} slideshows skipped, {len(report.failed)} failed."
+        f"{len(report.skipped_slideshows)} slideshows skipped, {len(report.failed)} failed.",
     )
 
 
-async def print_browser_results(browser_options: dict, iterate: Callable, label: str) -> None:
+async def _print_browser_results(browser_options: dict, iterate: Callable, label: str) -> None:
     """Start a `TikTokBrowser`, then print the results of `iterate(browser)` as JSON lines."""
     try:
         from patchright.async_api import Error as PlaywrightError
 
-        from .browser import TikTokBrowser
+        from tiktok_scraper.browser import TikTokBrowser
     except ImportError as error:
         raise TikTokError(
             'This command needs the "playwright" extra: pip install "tiktok-scraper[playwright]" '
-            "(or uv sync --extra playwright), then run: patchright install chromium"
+            "(or uv sync --extra playwright), then run: patchright install chromium",
         ) from error
 
     counter = 0
@@ -66,102 +135,146 @@ async def print_browser_results(browser_options: dict, iterate: Callable, label:
         if "Executable doesn't exist" in str(error):
             raise TikTokError("Chromium is not installed, run: patchright install chromium") from error
         raise TikTokError(f"Browser error: {error}") from error
-    print(f"{counter} {label} scraped.", file=sys.stderr)
+    console.print(f"[green]✓[/] {counter} {label} scraped.")
 
 
-async def iter_hashtag_videos_with_info(browser, name: str, limit: int):
-    from .hashtag import get_hashtag
-    from .hashtag import iter_hashtag_videos
+async def _iter_hashtag_videos_with_info(browser, name: str, limit: int):
+    from tiktok_scraper.hashtag import get_hashtag
+    from tiktok_scraper.hashtag import iter_hashtag_videos
 
     hashtag = await get_hashtag(browser, name)
-    print(
-        f"#{hashtag.name} (id {hashtag.id}): {hashtag.video_count} videos, {hashtag.view_count} views", file=sys.stderr
-    )
+    console.print(f"#{hashtag.name} (id {hashtag.id}): {hashtag.video_count} videos, {hashtag.view_count} views")
     async for tiktok in iter_hashtag_videos(browser, hashtag, limit=limit):
         yield tiktok
 
 
-def main() -> None:
-    parser = argparse.ArgumentParser(prog="tiktok-scraper")
-    parser.add_argument("-v", "--verbose", help="Show debug logs", action="store_true")
-    parser.add_argument("--proxy", help="Proxy URL, e.g. http://user:password@host:8080 or socks5h://host:1080")
-    parser.add_argument("--timeout", help="Timeout of each request, in seconds", type=float, default=30)
-    subparsers = parser.add_subparsers(dest="command", required=True)
-
-    videos_parser = subparsers.add_parser("videos", help="Download the videos of a user, newest first")
-    videos_parser.add_argument("user", help="Tiktok User Name", type=str)
-    videos_parser.add_argument("-o", "--output", help="Output directory", default=DOWNLOAD_DIRECTORY)
-    videos_parser.add_argument(
-        "-j", "--jobs", help="Number of parallel downloads", type=int, default=MAX_CONCURRENT_DOWNLOADS
-    )
-    videos_parser.add_argument(
-        "-n", "--limit", help="Only the N last published tiktoks (default: all)", type=int, default=None
-    )
-    videos_parser.add_argument("--no-progress", help="Hide the progress bars", action="store_true")
-
-    info_parser = subparsers.add_parser("info", help="Print metadata of a user account as JSON")
-    info_parser.add_argument("user", help="Tiktok User Name", type=str)
-
-    comments_parser = subparsers.add_parser(
-        "comments", help='Print comments of a tiktok as JSON lines (needs the "playwright" extra)'
-    )
-    comments_parser.add_argument("video", help="Tiktok video URL or id", type=str)
-    comments_parser.add_argument("--no-replies", help="Skip replies to comments", action="store_true")
-    comments_parser.add_argument("--headed", help="Show the browser window", action="store_true")
-
-    search_parser = subparsers.add_parser(
-        "search", help='Search tiktoks (or accounts) by keyword, as JSON lines (needs the "playwright" extra)'
-    )
-    search_parser.add_argument("keyword", help="Searched keyword, e.g. ukraine", type=str)
-    search_parser.add_argument("--users", help="Search accounts instead of tiktoks", action="store_true")
-    search_parser.add_argument("-n", "--limit", help="Maximum number of results (default: 50)", type=int, default=50)
-    search_parser.add_argument("--headed", help="Show the browser window", action="store_true")
-
-    hashtag_parser = subparsers.add_parser(
-        "hashtag", help='List tiktoks of a hashtag, as JSON lines (needs the "playwright" extra)'
-    )
-    hashtag_parser.add_argument("name", help="Hashtag name, e.g. ukraine", type=str)
-    hashtag_parser.add_argument("-n", "--limit", help="Maximum number of results (default: 50)", type=int, default=50)
-    hashtag_parser.add_argument(
-        "--headless",
-        help="Hide the browser window (TikTok often refuses hashtag videos to a headless browser)",
-        action="store_true",
-    )
-
-    args = parser.parse_args()
-
+@app.command()
+def videos(
+    user: Annotated[str, typer.Argument(help="TikTok user name.")],
+    output: Annotated[
+        Path,
+        typer.Option("--output", "-o", help="Download root folder.", rich_help_panel="Output"),
+    ] = Path(DOWNLOAD_DIRECTORY),
+    concurrency: Annotated[
+        int,
+        typer.Option("--concurrency", "-c", min=1, max=64, help="Parallel downloads.", rich_help_panel="Network"),
+    ] = MAX_CONCURRENT_DOWNLOADS,
+    limit: Annotated[
+        int | None,
+        typer.Option("--limit", "-n", min=1, help="Only the N last published tiktoks (default: all)."),
+    ] = None,
+    progress: Annotated[
+        bool,
+        typer.Option(
+            "--progress/--no-progress",
+            help="Show live progress bars (on a terminal).",
+            rich_help_panel="Output",
+        ),
+    ] = True,
+    proxy: ProxyOpt = None,
+    timeout: TimeoutOpt = 30,
+    impersonate: ImpersonateOpt = IMPERSONATE_TARGET,
+    verbose: VerboseOpt = 0,
+    quiet: QuietOpt = False,
+) -> None:
+    """Download the videos of a user, newest first, into OUTPUT/<user>/."""
     # Live bars need a terminal; otherwise, and with --no-progress, progress is plain log lines.
-    bars = None
-    if args.command == "videos" and not args.no_progress and ProgressBars().usable:
-        bars = ProgressBars()
-    handler = bars.log_handler() if bars else logging.StreamHandler()
-    logging.basicConfig(format="%(message)s", level=logging.WARNING, handlers=[handler])
-    logging.getLogger("tiktok_scraper").setLevel(logging.DEBUG if args.verbose else logging.INFO)
+    bars = ProgressBars(console) if progress else None
+    if bars and not bars.usable:
+        bars = None
+    _setup_logging(verbose, quiet)
+    client_options = {"proxy": proxy, "timeout": timeout, "impersonate": impersonate}
+    _execute(_download_videos(client_options, user, output, concurrency, limit, bars))
 
-    client_options = {"proxy": args.proxy, "timeout": args.timeout}
-    try:
-        if args.command == "videos":
-            asyncio.run(download_videos(client_options, args.user, args.output, args.jobs, args.limit, bars))
-        elif args.command == "info":
-            asyncio.run(print_user_metadata(client_options, args.user))
-        elif args.command == "comments":
-            from .comments import iter_comments
 
-            browser_options = {"proxy": args.proxy, "timeout": args.timeout, "headless": not args.headed}
-            iterate = partial(iter_comments, video=args.video, with_replies=not args.no_replies)
-            asyncio.run(print_browser_results(browser_options, iterate, "comments"))
-        elif args.command == "search":
-            from .search import iter_search_users
-            from .search import iter_search_videos
+@app.command()
+def info(
+    user: Annotated[str, typer.Argument(help="TikTok user name.")],
+    proxy: ProxyOpt = None,
+    timeout: TimeoutOpt = 30,
+    impersonate: ImpersonateOpt = IMPERSONATE_TARGET,
+    verbose: VerboseOpt = 0,
+    quiet: QuietOpt = False,
+) -> None:
+    """Print the metadata of a user account (profile + statistics) as JSON."""
+    _setup_logging(verbose, quiet)
+    client_options = {"proxy": proxy, "timeout": timeout, "impersonate": impersonate}
+    _execute(_print_user_metadata(client_options, user))
 
-            browser_options = {"proxy": args.proxy, "timeout": args.timeout, "headless": not args.headed}
-            search = iter_search_users if args.users else iter_search_videos
-            iterate = partial(search, keyword=args.keyword, limit=args.limit)
-            asyncio.run(print_browser_results(browser_options, iterate, "accounts" if args.users else "tiktoks"))
-        elif args.command == "hashtag":
-            # A visible window by default: TikTok often refuses hashtag videos to a headless browser.
-            browser_options = {"proxy": args.proxy, "timeout": args.timeout, "headless": args.headless}
-            iterate = partial(iter_hashtag_videos_with_info, name=args.name, limit=args.limit)
-            asyncio.run(print_browser_results(browser_options, iterate, "tiktoks"))
-    except (TikTokError, RequestException) as error:
-        raise SystemExit(f"[!] {error}") from error
+
+@app.command()
+def comments(
+    video: Annotated[str, typer.Argument(help="TikTok video URL or id.")],
+    replies: Annotated[bool, typer.Option("--replies/--no-replies", help="Also list replies to comments.")] = True,
+    headless: HeadlessOpt = True,
+    proxy: ProxyOpt = None,
+    timeout: TimeoutOpt = 30,
+    verbose: VerboseOpt = 0,
+    quiet: QuietOpt = False,
+) -> None:
+    """Print the comments of a tiktok as JSON lines (needs the "playwright" extra)."""
+    from tiktok_scraper.comments import iter_comments
+
+    _setup_logging(verbose, quiet)
+    browser_options = {"proxy": proxy, "timeout": timeout, "headless": headless}
+    iterate = partial(iter_comments, video=video, with_replies=replies)
+    _execute(_print_browser_results(browser_options, iterate, "comments"))
+
+
+@app.command()
+def search(
+    keyword: Annotated[str, typer.Argument(help="Searched keyword, e.g. ukraine.")],
+    users: Annotated[bool, typer.Option("--users", help="Search accounts instead of tiktoks.")] = False,
+    limit: LimitOpt = 50,
+    headless: HeadlessOpt = True,
+    proxy: ProxyOpt = None,
+    timeout: TimeoutOpt = 30,
+    verbose: VerboseOpt = 0,
+    quiet: QuietOpt = False,
+) -> None:
+    """Search tiktoks (or accounts) by keyword, as JSON lines (needs the "playwright" extra)."""
+    from tiktok_scraper.search import iter_search_users
+    from tiktok_scraper.search import iter_search_videos
+
+    _setup_logging(verbose, quiet)
+    browser_options = {"proxy": proxy, "timeout": timeout, "headless": headless}
+    iterate = partial(iter_search_users if users else iter_search_videos, keyword=keyword, limit=limit)
+    _execute(_print_browser_results(browser_options, iterate, "accounts" if users else "tiktoks"))
+
+
+@app.command()
+def hashtag(
+    name: Annotated[str, typer.Argument(help="Hashtag name, e.g. ukraine.")],
+    limit: LimitOpt = 50,
+    # A visible window by default: TikTok often refuses hashtag videos to a headless browser.
+    headless: HeadlessOpt = False,
+    proxy: ProxyOpt = None,
+    timeout: TimeoutOpt = 30,
+    verbose: VerboseOpt = 0,
+    quiet: QuietOpt = False,
+) -> None:
+    """List the tiktoks of a hashtag, as JSON lines (needs the "playwright" extra)."""
+    _setup_logging(verbose, quiet)
+    browser_options = {"proxy": proxy, "timeout": timeout, "headless": headless}
+    iterate = partial(_iter_hashtag_videos_with_info, name=name, limit=limit)
+    _execute(_print_browser_results(browser_options, iterate, "tiktoks"))
+
+
+def _version(value: bool) -> None:
+    if value:
+        typer.echo(f"tiktok-scraper {__version__}")
+        raise typer.Exit()
+
+
+@app.callback()
+def _root(
+    version: Annotated[
+        bool,
+        typer.Option("--version", callback=_version, is_eager=True, help="Show version and exit."),
+    ] = False,
+) -> None:
+    pass
+
+
+def main() -> None:
+    app()

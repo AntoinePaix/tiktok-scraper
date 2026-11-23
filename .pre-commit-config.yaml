@@ -1,0 +1,42 @@
+# Same hooks in every repo. Install once with `uv run pre-commit install`;
+# run on everything with `uv run pre-commit run --all-files` (the CI does the same).
+exclude: ^tests/fixtures/
+
+repos:
+  - repo: local
+    hooks:
+      - id: forbid-credential-files
+        name: forbid .env, HAR captures and token files
+        language: fail
+        entry: "credential file: never commit .env / .har / token.json files (they hold sessions and tokens)"
+        files: '(^|/)(\.env(\..+)?|[^/]+\.har|token\.json)$'
+        exclude: '(^|/)\.env\.example$'
+
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.30.1
+    hooks:
+      - id: gitleaks
+
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: check-added-large-files
+        args: [--maxkb=1024]
+      - id: check-merge-conflict
+      - id: check-toml
+      - id: check-yaml
+      - id: detect-private-key
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.17.6
+    hooks:
+      - id: ruff-check
+        args: [--fix]
+      - id: ruff-format
+
+  - repo: https://github.com/astral-sh/uv-pre-commit
+    rev: 0.12.18
+    hooks:
+      - id: uv-lock

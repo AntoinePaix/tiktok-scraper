@@ -5,7 +5,7 @@ import datetime
 import urllib.parse
 from typing import Any
 
-from .constants import VIDEO_URL_FORMAT
+from tiktok_scraper.constants import VIDEO_URL_FORMAT
 
 
 def _to_int(value: Any) -> int | None:

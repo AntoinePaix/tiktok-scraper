@@ -62,7 +62,7 @@ def test_solve_challenge(client):
         "v": {
             "a": base64.b64encode(base).decode(),
             "c": base64.b64encode(hashlib.sha256(base + str(answer).encode()).digest()).decode(),
-        }
+        },
     }
     encoded_challenge = base64.b64encode(json.dumps(challenge).encode()).decode().rstrip("=")
     webpage = (

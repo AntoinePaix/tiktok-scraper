@@ -56,7 +56,11 @@ def test_get_hashtag():
     hashtag = asyncio.run(get_hashtag(browser, "#ukraine"))
 
     assert hashtag == Hashtag(
-        id="451042", name="ukraine", description=None, video_count=9597506, view_count=192217240529
+        id="451042",
+        name="ukraine",
+        description=None,
+        video_count=9597506,
+        view_count=192217240529,
     )
     assert browser.requests == [(HASHTAG_DETAIL_API_URL, {"challengeName": "ukraine"})]
 
@@ -73,7 +77,7 @@ def test_iter_hashtag_videos_two_steps(item):
         {
             0: {"itemList": items(item, "1", "2"), "cursor": 30, "hasMore": True},
             30: {"itemList": items(item, "2", "3"), "cursor": 60, "hasMore": False},
-        }
+        },
     )
 
     tiktoks = collect(iter_hashtag_videos(browser, "ukraine"))

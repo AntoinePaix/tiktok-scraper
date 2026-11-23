@@ -12,7 +12,7 @@ from typing import Any
 
 from curl_cffi.requests import AsyncSession
 
-from .constants import WEBPAGE_URL
+from tiktok_scraper.constants import WEBPAGE_URL
 
 UNIVERSAL_DATA_SCRIPT_ID = "__UNIVERSAL_DATA_FOR_REHYDRATION__"
 

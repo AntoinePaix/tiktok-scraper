@@ -53,7 +53,7 @@ def test_iter_user_tiktoks_paginates_by_create_time(item):
         pages=[
             {"itemList": first_page, "hasMorePrevious": True},
             {"itemList": second_page, "hasMorePrevious": False},
-        ]
+        ],
     )
 
     assert collect(client) == ["3", "2", "1"]

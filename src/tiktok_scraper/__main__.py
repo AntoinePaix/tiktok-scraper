@@ -1,3 +1,3 @@
-from .cli import main
+from tiktok_scraper.cli import main
 
 main()

@@ -3,16 +3,16 @@
 from __future__ import annotations
 
 import re
+from collections.abc import AsyncIterator
 from typing import TYPE_CHECKING
 from typing import Any
-from typing import AsyncIterator
 
-from .constants import COMMENTS_API_URL
-from .constants import REPLIES_API_URL
-from .models import Comment
+from tiktok_scraper.constants import COMMENTS_API_URL
+from tiktok_scraper.constants import REPLIES_API_URL
+from tiktok_scraper.models import Comment
 
 if TYPE_CHECKING:
-    from .browser import TikTokBrowser
+    from tiktok_scraper.browser import TikTokBrowser
 
 COMMENTS_PER_REQUEST = 50
 REPLIES_PER_REQUEST = 50
@@ -29,7 +29,10 @@ def extract_video_id(video: str) -> str:
 
 
 async def _paginate(
-    browser: TikTokBrowser, url: str, params: dict[str, Any], count: int
+    browser: TikTokBrowser,
+    url: str,
+    params: dict[str, Any],
+    count: int,
 ) -> AsyncIterator[dict[str, Any]]:
     cursor = 0
     while True:

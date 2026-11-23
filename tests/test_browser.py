@@ -5,9 +5,9 @@ import pytest
 
 pytest.importorskip("patchright")
 
-from tiktok_scraper import TikTokError  # noqa: E402
-from tiktok_scraper import browser as browser_module  # noqa: E402
-from tiktok_scraper.browser import proxy_settings  # noqa: E402
+from tiktok_scraper import TikTokError
+from tiktok_scraper import browser as browser_module
+from tiktok_scraper.browser import proxy_settings
 
 
 @pytest.mark.parametrize(

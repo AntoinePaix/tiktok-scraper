@@ -5,18 +5,18 @@ TikTok often refuses hashtag videos to a headless browser: prefer `TikTokBrowser
 
 from __future__ import annotations
 
+from collections.abc import AsyncIterator
 from typing import TYPE_CHECKING
-from typing import AsyncIterator
 
-from .client import TikTokError
-from .constants import HASHTAG_DETAIL_API_URL
-from .constants import HASHTAG_VIDEOS_API_URL
-from .constants import TikTokStatus
-from .models import Hashtag
-from .models import TikTok
+from tiktok_scraper.client import TikTokError
+from tiktok_scraper.constants import HASHTAG_DETAIL_API_URL
+from tiktok_scraper.constants import HASHTAG_VIDEOS_API_URL
+from tiktok_scraper.constants import TikTokStatus
+from tiktok_scraper.models import Hashtag
+from tiktok_scraper.models import TikTok
 
 if TYPE_CHECKING:
-    from .browser import TikTokBrowser
+    from tiktok_scraper.browser import TikTokBrowser
 
 VIDEOS_PER_REQUEST = 30
 
@@ -37,7 +37,9 @@ async def get_hashtag(browser: TikTokBrowser, name: str) -> Hashtag:
 
 
 async def iter_hashtag_videos(
-    browser: TikTokBrowser, hashtag: str | Hashtag, limit: int | None = None
+    browser: TikTokBrowser,
+    hashtag: str | Hashtag,
+    limit: int | None = None,
 ) -> AsyncIterator[TikTok]:
     """Yield the tiktoks of a hashtag, in TikTok's ranking order.
 
@@ -58,7 +60,7 @@ async def iter_hashtag_videos(
         except TikTokError as error:
             if browser.headless and "Empty response" in str(error):
                 raise TikTokError(
-                    "TikTok refused hashtag videos to this headless browser: retry with TikTokBrowser(headless=False)"
+                    "TikTok refused hashtag videos to this headless browser: retry with TikTokBrowser(headless=False)",
                 ) from error
             raise
 

@@ -1,7 +1,23 @@
-venv
-downloaded_videos
-__pycache__
-sandbox
-captchas_images
-data
-.venv
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+
+# Secrets and captures
+.env
+.env.*
+!.env.example
+*.har
+proxies.txt
+
+# Downloads and local data
+downloaded_videos/
+captchas_images/
+data/
+sandbox/

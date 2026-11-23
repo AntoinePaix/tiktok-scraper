@@ -42,7 +42,7 @@ def test_iter_search_videos_paginates_with_search_id(item):
                 "log_pb": {"impr_id": "search-id"},
             },
             12: {"data": [video(item, "2"), video(item, "3")], "cursor": 24, "has_more": 0},
-        }
+        },
     )
 
     tiktoks = collect(iter_search_videos(browser, "ukraine"))

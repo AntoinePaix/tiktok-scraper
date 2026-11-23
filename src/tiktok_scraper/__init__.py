@@ -2,24 +2,24 @@
 
 from importlib.metadata import version
 
-from .client import TikTokClient
-from .client import TikTokError
-from .comments import iter_comments
-from .comments import iter_replies
-from .downloader import DownloadReport
-from .downloader import download_user_videos
-from .hashtag import get_hashtag
-from .hashtag import iter_hashtag_videos
-from .models import Comment
-from .models import Hashtag
-from .models import SearchUser
-from .models import TikTok
-from .models import UserMetadata
-from .search import iter_search_users
-from .search import iter_search_videos
-from .user import get_user_info
-from .user import get_user_metadata
-from .user import iter_user_tiktoks
+from tiktok_scraper.client import TikTokClient
+from tiktok_scraper.client import TikTokError
+from tiktok_scraper.comments import iter_comments
+from tiktok_scraper.comments import iter_replies
+from tiktok_scraper.downloader import DownloadReport
+from tiktok_scraper.downloader import download_user_videos
+from tiktok_scraper.hashtag import get_hashtag
+from tiktok_scraper.hashtag import iter_hashtag_videos
+from tiktok_scraper.models import Comment
+from tiktok_scraper.models import Hashtag
+from tiktok_scraper.models import SearchUser
+from tiktok_scraper.models import TikTok
+from tiktok_scraper.models import UserMetadata
+from tiktok_scraper.search import iter_search_users
+from tiktok_scraper.search import iter_search_videos
+from tiktok_scraper.user import get_user_info
+from tiktok_scraper.user import get_user_metadata
+from tiktok_scraper.user import iter_user_tiktoks
 
 __version__ = version("tiktok-scraper")
 

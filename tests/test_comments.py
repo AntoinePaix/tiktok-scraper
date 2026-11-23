@@ -93,7 +93,7 @@ def browser():
                 "has_more": 0,
                 "cursor": 2,
             },
-        }
+        },
     )
 
 
@@ -114,7 +114,7 @@ def test_iter_comments_without_replies(browser):
 
 def test_iter_comments_stops_when_cursor_does_not_move():
     browser = FakeBrowser(
-        {(COMMENTS_API_URL, None, 0): {"comments": [api_comment("1", "first")], "has_more": 1, "cursor": 0}}
+        {(COMMENTS_API_URL, None, 0): {"comments": [api_comment("1", "first")], "has_more": 1, "cursor": 0}},
     )
 
     assert [comment.id for comment in collect(browser)] == ["1"]

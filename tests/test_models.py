@@ -27,10 +27,15 @@ def test_video_urls_best_bitrate_first(item):
 def test_video_urls_skip_broken_formats(item):
     # Unplayable codec and video-only format.
     item["video"]["bitrateInfo"].insert(
-        0, {"Bitrate": 10**9, "PlayAddr": {"UrlKey": "x_bytevc2_1080p", "UrlList": ["https://cdn.example/a"]}}
+        0,
+        {
+            "Bitrate": 10**9,
+            "PlayAddr": {"UrlKey": "x_bytevc2_1080p", "UrlList": ["https://cdn.example/a"]},  # gitleaks:allow
+        },
     )
     item["video"]["bitrateInfo"].insert(
-        0, {"Bitrate": 10**9, "PlayAddr": {"UrlKey": "x", "UrlList": ["https://cdn.example/media-video-hvc1/"]}}
+        0,
+        {"Bitrate": 10**9, "PlayAddr": {"UrlKey": "x", "UrlList": ["https://cdn.example/media-video-hvc1/"]}},
     )
     urls = TikTok(item).video_urls
 

@@ -19,8 +19,8 @@ import tempfile
 import urllib.parse
 from typing import Any
 
-from .client import TikTokError
-from .constants import WEBPAGE_URL
+from tiktok_scraper.client import TikTokError
+from tiktok_scraper.constants import WEBPAGE_URL
 
 try:
     from patchright.async_api import BrowserContext
@@ -31,7 +31,7 @@ try:
 except ImportError as error:  # pragma: no cover - depends on the installed extras
     raise ImportError(
         'TikTokBrowser needs the "playwright" extra: pip install "tiktok-scraper[playwright]", '
-        "then run: patchright install chromium"
+        "then run: patchright install chromium",
     ) from error
 
 logger = logging.getLogger(__name__)
@@ -70,7 +70,7 @@ COMMON_PARAMS = frozenset(
         "tz_name",
         "user_is_login",
         "webcast_language",
-    }
+    },
 )
 USER_AGENT_PLATFORMS = {
     "linux": "X11; Linux x86_64",
@@ -108,7 +108,10 @@ def proxy_settings(proxy: str) -> dict[str, str]:
 async def chromium_user_agent(executable_path: str) -> str:
     """User agent of a regular (not headless) Chrome with the same version as the given executable."""
     process = await asyncio.create_subprocess_exec(
-        executable_path, "--version", stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.DEVNULL
+        executable_path,
+        "--version",
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.DEVNULL,
     )
     stdout, _ = await process.communicate()
     match = re.search(r"(\d+)\.\d+\.\d+\.\d+", stdout.decode())
@@ -186,7 +189,8 @@ class TikTokBrowser:
                 self._temporary_directory = tempfile.TemporaryDirectory(prefix="tiktok-scraper-")
                 user_data_dir = self._temporary_directory.name
             self._context = await self._playwright.chromium.launch_persistent_context(
-                user_data_dir, **await self._context_options()
+                user_data_dir,
+                **await self._context_options(),
             )
             self._context.set_default_timeout(self.timeout * 1000)
             self._page = self._context.pages[0] if self._context.pages else await self._context.new_page()
@@ -205,7 +209,8 @@ class TikTokBrowser:
         for attempt in range(1, WARM_UP_ATTEMPTS + 1):
             try:
                 async with self._page.expect_request(
-                    is_signed_api_request, timeout=WARM_UP_REQUEST_TIMEOUT * 1000
+                    is_signed_api_request,
+                    timeout=WARM_UP_REQUEST_TIMEOUT * 1000,
                 ) as request_info:
                     if attempt == 1:
                         await self._page.goto(self.warm_up_url, wait_until="domcontentloaded")
@@ -218,7 +223,7 @@ class TikTokBrowser:
         else:
             raise TikTokError(
                 f"{self.warm_up_url} made no signed API request after {WARM_UP_ATTEMPTS} loads: "
-                "TikTok may be blocking this browser or IP address"
+                "TikTok may be blocking this browser or IP address",
             )
         query = urllib.parse.parse_qs(urllib.parse.urlsplit(request.url).query)
         self.common_params = {key: values[0] for key, values in query.items() if key in COMMON_PARAMS}
@@ -250,7 +255,11 @@ class TikTokBrowser:
         return await self._page.evaluate(CAPTCHA_JS, isolated_context=False)
 
     async def request_json(
-        self, url: str, params: dict[str, Any], from_page: str = "video", retries: int = EMPTY_RESPONSE_RETRIES
+        self,
+        url: str,
+        params: dict[str, Any],
+        from_page: str = "video",
+        retries: int = EMPTY_RESPONSE_RETRIES,
     ) -> dict[str, Any]:
         """Send a GET request to a TikTok API endpoint from the page, signed by TikTok's own script.
 
@@ -272,7 +281,9 @@ class TikTokBrowser:
 
         for attempt in range(retries + 1):
             response = await self._page.evaluate(
-                REQUEST_JS, f"{path}?{urllib.parse.urlencode(query)}", isolated_context=False
+                REQUEST_JS,
+                f"{path}?{urllib.parse.urlencode(query)}",
+                isolated_context=False,
             )
             if response["status"] != 200:
                 raise TikTokError(f"HTTP {response['status']} from {path}")
@@ -281,7 +292,7 @@ class TikTokBrowser:
             if await self.is_showing_captcha():
                 raise TikTokError(
                     "TikTok is showing a CAPTCHA: this browser session was flagged. Wait before retrying, slow down, "
-                    "or use another IP address"
+                    "or use another IP address",
                 )
             if attempt < retries:
                 logger.debug("Empty response from %s, retrying in %s s", path, EMPTY_RESPONSE_RETRY_DELAY)

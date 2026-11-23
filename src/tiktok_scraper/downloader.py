@@ -6,15 +6,16 @@ import logging
 import os
 
 import aiofiles
+import aiofiles.os
 
-from .client import TikTokClient
-from .constants import DOWNLOAD_DIRECTORY
-from .constants import MAX_CONCURRENT_DOWNLOADS
-from .constants import USER_URL_FORMAT
-from .models import TikTok
-from .progress import Observer
-from .user import get_user_info
-from .user import iter_user_tiktoks
+from tiktok_scraper.client import TikTokClient
+from tiktok_scraper.constants import DOWNLOAD_DIRECTORY
+from tiktok_scraper.constants import MAX_CONCURRENT_DOWNLOADS
+from tiktok_scraper.constants import USER_URL_FORMAT
+from tiktok_scraper.models import TikTok
+from tiktok_scraper.progress import Observer
+from tiktok_scraper.user import get_user_info
+from tiktok_scraper.user import iter_user_tiktoks
 
 logger = logging.getLogger(__name__)
 
@@ -68,11 +69,11 @@ async def download_video(
                         progress.advanced(filename, len(chunk))
     except Exception:
         logger.debug("Failed to download %s", url, exc_info=True)
-        if os.path.exists(partial_path_file):
-            os.remove(partial_path_file)
+        if await aiofiles.os.path.exists(partial_path_file):
+            await aiofiles.os.remove(partial_path_file)
         return False
 
-    os.replace(partial_path_file, full_path_file)
+    await aiofiles.os.replace(partial_path_file, full_path_file)
     return True
 
 
@@ -100,7 +101,7 @@ async def process_tiktok(
                 logger.info("[-] %s is a slideshow, skipped.", tiktok.id)
                 report.skipped_slideshows.append(tiktok.id)
                 return
-            if os.path.exists(os.path.join(report.directory, tiktok.video_filename)):
+            if await aiofiles.os.path.exists(os.path.join(report.directory, tiktok.video_filename)):
                 logger.info("[=] %s already downloaded.", tiktok.video_filename)
                 report.already_downloaded.append(tiktok.id)
                 return
@@ -108,7 +109,12 @@ async def process_tiktok(
             detailed_tiktok = await get_tiktok_detail(client, tiktok)
             for url in detailed_tiktok.video_urls:
                 if await download_video(
-                    client, url, tiktok.video_filename, report.directory, tiktok.webpage_url, progress
+                    client,
+                    url,
+                    tiktok.video_filename,
+                    report.directory,
+                    tiktok.webpage_url,
+                    progress,
                 ):
                     logger.info("[+] Download %s", tiktok.video_filename)
                     report.downloaded.append(tiktok.id)
@@ -147,7 +153,12 @@ async def download_user_videos(
     if client is None:
         async with TikTokClient() as client:
             return await download_user_videos(
-                username, output_directory, max_concurrent_downloads, client, limit, progress
+                username,
+                output_directory,
+                max_concurrent_downloads,
+                client,
+                limit,
+                progress,
             )
 
     user_info = await get_user_info(client, username)
