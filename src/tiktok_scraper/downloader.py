@@ -27,8 +27,9 @@ class DownloadReport:
     directory: str
     downloaded: list[str] = dataclasses.field(default_factory=list)
     already_downloaded: list[str] = dataclasses.field(default_factory=list)
-    skipped_slideshows: list[str] = dataclasses.field(default_factory=list)
     failed: list[str] = dataclasses.field(default_factory=list)
+    # Subset of the ids above which are slideshows (images and a soundtrack, not a video).
+    slideshows: list[str] = dataclasses.field(default_factory=list)
 
 
 async def download_video(
@@ -38,35 +39,40 @@ async def download_video(
     directory: str,
     referer: str,
     progress: Observer | None = None,
+    content_type: str = "video/",
+    progress_name: str | None = None,
 ) -> bool:
-    """Function to download video from tiktok.
+    """Function to download a file (video, slideshow image or soundtrack) from tiktok.
 
     Args:
         client (TikTokClient): Client holding the cookies of the video page.
-        url (str): Video url from tiktok website.
-        filename (str): Name of the file to download the video.
-        directory (str): Directory where to write the video.
+        url (str): File url from tiktok website.
+        filename (str): Name of the file to download.
+        directory (str): Directory where to write the file.
         referer (str): Video page URL.
         progress (Observer, optional): Told when the download starts and advances.
+        content_type (str, optional): Expected prefix of the response content type, e.g. "image/".
+        progress_name (str, optional): Name shown by `progress`. Defaults to `filename`.
 
     Returns:
-        bool: True if the video has been downloaded.
+        bool: True if the file has been downloaded.
     """
+    progress_name = progress_name or filename
     full_path_file = os.path.join(directory, filename)
     partial_path_file = f"{full_path_file}.part"
     try:
         async with client.session.stream("GET", url, headers={"Referer": referer}) as response:
-            if response.status_code != 200 or not response.headers.get("content-type", "").startswith("video/"):
+            if response.status_code != 200 or not response.headers.get("content-type", "").startswith(content_type):
                 logger.debug("Rejected %s (HTTP %s)", url, response.status_code)
                 return False
             if progress:
                 size = response.headers.get("content-length")
-                progress.started(filename, int(size) if size else None)
+                progress.started(progress_name, int(size) if size else None)
             async with aiofiles.open(partial_path_file, mode="wb") as file:
                 async for chunk in response.aiter_content():
                     await file.write(chunk)
                     if progress:
-                        progress.advanced(filename, len(chunk))
+                        progress.advanced(progress_name, len(chunk))
     except Exception:
         logger.debug("Failed to download %s", url, exc_info=True)
         if await aiofiles.os.path.exists(partial_path_file):
@@ -88,6 +94,63 @@ async def get_tiktok_detail(client: TikTokClient, tiktok: TikTok) -> TikTok:
     return TikTok(item) if item and item.get("video") else tiktok
 
 
+async def download_first(
+    client: TikTokClient,
+    urls: list[str],
+    filename: str,
+    directory: str,
+    referer: str,
+    progress: Observer | None,
+    content_type: str,
+    progress_name: str,
+) -> bool:
+    """Download a file from the first of `urls` that works."""
+    for url in urls:
+        if await download_video(client, url, filename, directory, referer, progress, content_type, progress_name):
+            return True
+    return False
+
+
+def slideshow_files(tiktok: TikTok) -> list[str]:
+    """Files of a complete slideshow download: every image, and the soundtrack if it has one."""
+    return tiktok.image_filenames + ([tiktok.audio_filename] if tiktok.audio_url else [])
+
+
+async def download_slideshow(
+    client: TikTokClient,
+    tiktok: TikTok,
+    directory: str,
+    progress: Observer | None,
+    progress_name: str,
+) -> bool:
+    """Download the images of a slideshow, then its soundtrack.
+
+    Returns:
+        bool: True if every image has been downloaded (a missing soundtrack is only logged).
+    """
+    detailed_tiktok = None
+    all_images = True
+    for index, filename in enumerate(tiktok.image_filenames):
+        if await aiofiles.os.path.exists(os.path.join(directory, filename)):
+            continue
+        args = (filename, directory, tiktok.webpage_url, progress, "image/", progress_name)
+        if await download_first(client, tiktok.image_urls[index], *args):
+            continue
+        # The URLs of the listing may have expired: retry with fresh ones from the video page.
+        detailed_tiktok = detailed_tiktok or await get_tiktok_detail(client, tiktok)
+        fresh_urls = detailed_tiktok.image_urls[index] if index < len(detailed_tiktok.image_urls) else []
+        if not await download_first(client, fresh_urls, *args):
+            logger.warning("[!] Unable to download %s/%s", tiktok.id, filename)
+            all_images = False
+
+    audio_path = os.path.join(directory, tiktok.audio_filename)
+    if tiktok.audio_url and not await aiofiles.os.path.exists(audio_path):
+        args = (tiktok.audio_filename, directory, tiktok.webpage_url, progress, "audio/", progress_name)
+        if not await download_first(client, [tiktok.audio_url], *args):
+            logger.warning("[!] Unable to download the soundtrack of %s", tiktok.id)
+    return all_images
+
+
 async def process_tiktok(
     client: TikTokClient,
     tiktok: TikTok,
@@ -95,12 +158,26 @@ async def process_tiktok(
     semaphore: asyncio.Semaphore,
     progress: Observer | None = None,
 ) -> None:
+    progress_name = f"{tiktok.id} (slideshow)" if tiktok.is_slideshow else tiktok.video_filename
     async with semaphore:
         try:
             if tiktok.is_slideshow:
-                logger.info("[-] %s is a slideshow, skipped.", tiktok.id)
-                report.skipped_slideshows.append(tiktok.id)
+                report.slideshows.append(tiktok.id)
+                # One folder per slideshow, named after its id: its images and its music.
+                directory = os.path.join(report.directory, tiktok.id)
+                files = [os.path.join(directory, filename) for filename in slideshow_files(tiktok)]
+                if all([await aiofiles.os.path.exists(path) for path in files]):
+                    logger.info("[=] %s already downloaded.", progress_name)
+                    report.already_downloaded.append(tiktok.id)
+                    return
+                await aiofiles.os.makedirs(directory, exist_ok=True)
+                if await download_slideshow(client, tiktok, directory, progress, progress_name):
+                    logger.info("[+] Download %s: %s images", progress_name, len(tiktok.image_filenames))
+                    report.downloaded.append(tiktok.id)
+                else:
+                    report.failed.append(tiktok.id)
                 return
+
             if await aiofiles.os.path.exists(os.path.join(report.directory, tiktok.video_filename)):
                 logger.info("[=] %s already downloaded.", tiktok.video_filename)
                 report.already_downloaded.append(tiktok.id)
@@ -123,7 +200,7 @@ async def process_tiktok(
             report.failed.append(tiktok.id)
         finally:
             if progress:
-                progress.finished(tiktok.video_filename)
+                progress.finished(progress_name)
 
 
 async def download_user_videos(
@@ -142,8 +219,9 @@ async def download_user_videos(
         max_concurrent_downloads (int, optional): Number of videos downloaded in parallel.
         client (TikTokClient, optional): Client to use (e.g. configured with a proxy). It is not closed afterwards.
             Defaults to a new client with default options.
-        limit (int, optional): Only the `limit` last published tiktoks (already downloaded ones and slideshows
-            included). Defaults to all.
+        limit (int, optional): Only the `limit` last published tiktoks (already downloaded ones included).
+            Defaults to all. Each slideshow is saved in its own folder named after its id: `<id>/1.jpg`,
+            `<id>/2.jpg`... and its music as `<id>/music.m4a`.
         progress (Observer, optional): Told about each tiktok queued, started, advanced and finished, e.g. a
             `tiktok_scraper.progress.ProgressBars` for a live progress bar.
 

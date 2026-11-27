@@ -82,6 +82,27 @@ class TikTok:
         urls = [url for url in urls if urllib.parse.urlparse(url).hostname != "www.tiktok.com"]
         return list(dict.fromkeys(urls))
 
+    @property
+    def image_urls(self) -> list[list[str]]:
+        """Candidate URLs of each image of a slideshow, in order (empty for a video)."""
+        images = (self._tiktok_data.get("imagePost") or {}).get("images") or []
+        return [image.get("imageURL", {}).get("urlList") or [] for image in images]
+
+    @property
+    def image_filenames(self) -> list[str]:
+        """File names of the images of a slideshow, numbered from 1, inside its folder (named after its id)."""
+        return [f"{index}.jpg" for index in range(1, len(self.image_urls) + 1)]
+
+    @property
+    def audio_url(self) -> str | None:
+        """URL of the soundtrack (the slideshow's sound, or the video's music)."""
+        return (self._tiktok_data.get("music") or {}).get("playUrl") or None
+
+    @property
+    def audio_filename(self) -> str:
+        """File name of the soundtrack of a slideshow, inside its folder (named after its id)."""
+        return "music.m4a"
+
     def to_dict(self) -> dict[str, Any]:
         """Main fields of the tiktok (`raw` holds everything TikTok returned)."""
         author = self._tiktok_data.get("author") or {}

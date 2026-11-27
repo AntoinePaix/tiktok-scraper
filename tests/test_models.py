@@ -49,6 +49,30 @@ def test_slideshow(item):
     assert TikTok(item).is_slideshow
 
 
+def test_slideshow_files(item):
+    item["imagePost"] = {
+        "images": [
+            {"imageURL": {"urlList": ["https://cdn.example/1a.jpeg", "https://cdn.example/1b.jpeg"]}},
+            {"imageURL": {"urlList": ["https://cdn.example/2a.jpeg"]}},
+        ],
+    }
+    item["music"] = {"playUrl": "https://cdn.example/sound"}
+    tiktok = TikTok(item)
+
+    assert tiktok.image_urls == [
+        ["https://cdn.example/1a.jpeg", "https://cdn.example/1b.jpeg"],
+        ["https://cdn.example/2a.jpeg"],
+    ]
+    assert tiktok.image_filenames == ["1.jpg", "2.jpg"]
+    assert tiktok.audio_url == "https://cdn.example/sound"
+    assert tiktok.audio_filename == "music.m4a"
+
+
+def test_video_has_no_images(item):
+    assert TikTok(item).image_urls == []
+    assert TikTok(item).image_filenames == []
+
+
 def test_user_metadata_prefers_exact_stats(user_info):
     metadata = UserMetadata.from_user_info(user_info)
 

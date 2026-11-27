@@ -108,8 +108,8 @@ async def _download_videos(
             report = await download_user_videos(username, str(output), concurrency, client, limit, progress)
     console.print(
         f"[green]✓[/] {report.directory}: {len(report.downloaded)} downloaded, "
-        f"{len(report.already_downloaded)} already downloaded, "
-        f"{len(report.skipped_slideshows)} slideshows skipped, {len(report.failed)} failed.",
+        f"{len(report.already_downloaded)} already downloaded, {len(report.failed)} failed "
+        f"({len(report.slideshows)} slideshows).",
     )
 
 

@@ -128,7 +128,9 @@ TIKTOK_PROXY=http://host:8080 tiktok-scraper info charlidamelio
 
 ## Output
 
-- `videos` writes one `<video id>.mp4` per tiktok into `<output>/<user>/`. Slideshows (photo posts) are skipped.
+- `videos` writes one `<video id>.mp4` per tiktok into `<output>/<user>/`. Each slideshow (photo post) gets its
+  own folder named after its id, with its images and its music: `<output>/<user>/<id>/1.jpg`, `2.jpg`...,
+  `music.m4a`.
 - `info` prints a JSON object: `id`, `sec_uid`, `username`, `nickname`, `signature`, `verified`, `private_account`,
   `created_at`, `avatar_url`, `bio_link`, `region`, `language`, `follower_count`, `following_count`,
   `heart_count`, `video_count`, `digg_count`, `friend_count`.
