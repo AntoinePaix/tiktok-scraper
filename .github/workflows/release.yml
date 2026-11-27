@@ -1,16 +1,21 @@
 name: Release
 
-# Pushing a version tag (e.g. v0.4.0) builds the package and publishes a GitHub release.
+# Pushing a version tag (e.g. v0.5.0, or v0.5.0rc1 for a release candidate) builds the package, publishes it to
+# PyPI and creates a GitHub release.
 on:
   push:
     tags: ["v*"]
 
 permissions:
-  contents: write  # create the release
+  contents: read
 
 jobs:
   release:
     runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      contents: write  # create the GitHub release
+      id-token: write  # PyPI Trusted Publishing: PyPI trusts this workflow, no token stored anywhere
     steps:
       - uses: actions/checkout@v4
         with:
@@ -30,6 +35,9 @@ jobs:
 
       - run: uv build  # wheel and sdist in dist/
 
+      - name: Publish to PyPI
+        run: uv publish --trusted-publishing always
+
       - name: Write the release notes from the commits since the previous tag
         run: |
           previous="$(git describe --tags --abbrev=0 "$GITHUB_REF_NAME^" 2>/dev/null || true)"
@@ -47,8 +55,13 @@ jobs:
       - name: Create the GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
-        run: >-
-          gh release create "$GITHUB_REF_NAME" dist/*
-          --title "$GITHUB_REF_NAME"
-          --notes-file release-notes.md
-          --verify-tag
+        run: |
+          # Release candidates and other pre-releases (0.5.0rc1, 0.5.0b2...) are marked as such on GitHub too.
+          prerelease=""
+          if [[ "$GITHUB_REF_NAME" =~ (a|b|rc|dev)[0-9]+$ ]]; then
+            prerelease="--prerelease"
+          fi
+          gh release create "$GITHUB_REF_NAME" dist/* \
+            --title "$GITHUB_REF_NAME" \
+            --notes-file release-notes.md \
+            --verify-tag $prerelease

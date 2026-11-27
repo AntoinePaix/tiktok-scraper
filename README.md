@@ -23,8 +23,8 @@ Pick one of the options below. They all install the `tokscrape` command.
 ### With uv
 
 ```bash
-# As a tool, available everywhere:
-uv tool install git+https://github.com/AntoinePaix/tokscrape
+# As a tool, available everywhere, from PyPI:
+uv tool install tokscrape
 
 # Or from a clone (runs from the project's own virtual environment):
 git clone https://github.com/AntoinePaix/tokscrape
@@ -38,8 +38,10 @@ uv run tokscrape --help
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate        # Windows: .venv\Scripts\activate
-pip install git+https://github.com/AntoinePaix/tokscrape
+pip install tokscrape
 ```
+
+The development version, not released yet: `pip install git+https://github.com/AntoinePaix/tokscrape`.
 
 pip ignores `uv.lock` and installs the latest versions allowed by `pyproject.toml`. To get the exact locked
 versions, export them once with `uv export --format requirements.txt > requirements.txt`, then run
@@ -51,7 +53,7 @@ The `playwright` extra installs [patchright](https://github.com/Kaliiiiiiiiii-Vi
 Playwright which removes the main automation leaks, then a Chromium build:
 
 ```bash
-uv sync --extra playwright           # or: pip install "tokscrape[playwright] @ git+https://github.com/AntoinePaix/tokscrape"
+uv sync --extra playwright           # or: pip install "tokscrape[playwright]"
 uv run patchright install chromium   # downloads Chromium into ~/.cache/ms-playwright
 ```
 
@@ -346,9 +348,10 @@ the `uv run` prefix.
   pre-commit hooks, and another runs the offline tests on Python 3.11, 3.12, 3.13 and 3.14.
 - **Code style**: ruff with 120-character lines, one import per line and absolute imports only (see
   `pyproject.toml`).
-- **Releases** (`.github/workflows/release.yml`): pushing a version tag such as `v0.4.0` checks it matches the
-  version in `pyproject.toml`, runs the tests, builds the package and publishes a GitHub release with the wheel, the
-  sdist and the list of commits since the previous tag.
+- **Releases** (`.github/workflows/release.yml`): pushing a version tag such as `v0.5.0` checks it matches the
+  version in `pyproject.toml`, runs the tests, builds the package, publishes it to
+  [PyPI](https://pypi.org/project/tokscrape/) and creates a GitHub release with the wheel, the sdist and the list
+  of commits since the previous tag.
 
 ### Releasing
 
@@ -359,45 +362,36 @@ Versions follow `MAJOR.MINOR.PATCH`: bump `minor` for new features or breaking c
 uv version --bump minor                          # e.g. 0.4.0 -> 0.5.0, in pyproject.toml and uv.lock
 git commit -am "Release 0.5.0"
 git tag v0.5.0
-git push origin main v0.5.0                       # the release workflow publishes the GitHub release
+git push origin main v0.5.0                       # the release workflow publishes to PyPI and GitHub
 ```
 
-A released version can be installed without cloning the repository:
-`pip install git+https://github.com/AntoinePaix/tokscrape@v0.5.0`, or from the wheel attached to the release.
+Release candidates test the whole chain on PyPI first: pip only installs them when asked explicitly
+(`pip install tokscrape==0.5.0rc1`), and they are marked as pre-releases on GitHub.
+
+```bash
+uv version 0.5.0rc1                               # then commit, tag v0.5.0rc1 and push as above
+```
+
 The package is named `tokscrape` because `tiktok-scraper` is taken on PyPI by another project (which also
-installs a `tiktok_scraper` module and a `tiktok-scraper` command). Releases are not on PyPI yet: test uploads
-go to TestPyPI (see below).
+installs a `tiktok_scraper` module and a `tiktok-scraper` command).
 
-### Test uploads to TestPyPI
-
-`.github/workflows/testpypi.yml` publishes a development version (e.g. `0.5.0.dev12`, unique for each run) to
-[TestPyPI](https://test.pypi.org/project/tokscrape/), then installs it back and runs `tokscrape --version`. It uses
-PyPI's [Trusted Publishing](https://docs.pypi.org/trusted-publishers/): no token is stored, TestPyPI trusts the
-workflow itself. One-time setup, on a [TestPyPI account](https://test.pypi.org/account/register/) (separate from
-PyPI), in *Your account > Publishing > Add a new pending publisher*, GitHub tab:
+PyPI publishing uses [Trusted Publishing](https://docs.pypi.org/trusted-publishers/): no token is stored, PyPI
+trusts the release workflow itself. It is configured once on pypi.org, in the project's *Settings > Publishing*
+(or *Your account > Publishing > Add a new pending publisher* before the first upload), GitHub tab:
 
 | Field | Value |
 | --- | --- |
 | PyPI Project Name | `tokscrape` |
 | Owner | `AntoinePaix` |
 | Repository name | `tokscrape` |
-| Workflow name | `testpypi.yml` |
-| Environment name | `testpypi` |
-
-Then run it from GitHub: *Actions > TestPyPI > Run workflow*. To install a test version (only `tokscrape` from
-TestPyPI, its dependencies from PyPI):
-
-```bash
-pip install aiofiles curl-cffi pydantic rich typer                                   # dependencies, from PyPI
-pip install --no-deps --index-url https://test.pypi.org/simple/ tokscrape==0.5.0.dev12  # the package, from TestPyPI
-```
+| Workflow name | `release.yml` |
+| Environment name | `pypi` |
 
 ### Repository layout
 
 ```
 .github/workflows/ci.yml        lint (pre-commit) + tests on Python 3.11 to 3.14
-.github/workflows/release.yml   GitHub release on a version tag (v*)
-.github/workflows/testpypi.yml  test upload to TestPyPI, run by hand
+.github/workflows/release.yml   PyPI + GitHub release on a version tag (v*)
 src/tokscrape/
 ├── cli.py          # command line (typer): videos, info, tiktok, comments, search, hashtag
 ├── client.py       # HTTP client: curl_cffi, page rehydration data
