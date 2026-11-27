@@ -4,10 +4,12 @@ import json
 from pathlib import Path
 
 from tiktok_scraper.constants import SEARCH_MUSIC_API_URL
+from tiktok_scraper.constants import SEARCH_PHOTOS_API_URL
 from tiktok_scraper.constants import SEARCH_USERS_API_URL
 from tiktok_scraper.constants import SEARCH_VIDEOS_API_URL
 from tiktok_scraper.models import Music
 from tiktok_scraper.search import iter_search_music
+from tiktok_scraper.search import iter_search_photos
 from tiktok_scraper.search import iter_search_users
 from tiktok_scraper.search import iter_search_videos
 
@@ -125,3 +127,33 @@ def test_iter_search_music_limit():
     browser = FakeBrowser({0: MUSIC_SEARCH})
 
     assert len(collect(iter_search_music(browser, "paris", limit=2))) == 2
+
+
+PHOTO_SEARCH = json.loads((Path(__file__).parent / "fixtures" / "photo_search.json").read_text())
+
+
+def test_iter_search_photos_paginates():
+    first_page = copy.deepcopy(PHOTO_SEARCH)
+    second_page = {"item_list": [PHOTO_SEARCH["item_list"][0], {}], "cursor": 24, "has_more": 0}
+    browser = FakeBrowser({0: first_page, 12: second_page})
+
+    slideshows = collect(iter_search_photos(browser, "nasa"))
+
+    # The repeated post and the item without id are skipped.
+    assert [tiktok.author_username for tiktok in slideshows] == [
+        "conspiracytheoryblack",
+        "karla.breve4",
+        "viensonpartloin",
+    ]
+    assert all(tiktok.is_slideshow and tiktok.image_count == 2 for tiktok in slideshows)
+    url, params, from_page = browser.requests[0]
+    assert (url, from_page, params["keyword"]) == (SEARCH_PHOTOS_API_URL, "search", "nasa")
+    assert browser.requests[1][1]["search_id"] == PHOTO_SEARCH["log_pb"]["impr_id"]
+    assert browser.requests[1][1]["cursor"] == 12
+
+
+def test_iter_search_photos_limit():
+    browser = FakeBrowser({0: PHOTO_SEARCH})
+
+    assert len(collect(iter_search_photos(browser, "nasa", limit=2))) == 2
+    assert len(browser.requests) == 1

@@ -294,6 +294,10 @@ def search(
     keyword: Annotated[str, typer.Argument(help="Searched keyword, e.g. ukraine.")],
     users: Annotated[bool, typer.Option("--users", help="Search accounts instead of tiktoks.")] = False,
     music: Annotated[bool, typer.Option("--music", help="Search sounds instead of tiktoks.")] = False,
+    photos: Annotated[
+        bool,
+        typer.Option("--photos", help="Search photo posts (slideshows) only, like the website's Photo tab."),
+    ] = False,
     limit: LimitOpt = 50,
     headless: HeadlessOpt = True,
     proxy: ProxyOpt = None,
@@ -301,17 +305,20 @@ def search(
     verbose: VerboseOpt = 0,
     quiet: QuietOpt = False,
 ) -> None:
-    """Search tiktoks (or accounts, or sounds) by keyword, as JSON lines (needs the "playwright" extra)."""
+    """Search tiktoks (or accounts, sounds, photo posts) by keyword, as JSON lines (needs the "playwright" extra)."""
     from tiktok_scraper.search import iter_search_music
+    from tiktok_scraper.search import iter_search_photos
     from tiktok_scraper.search import iter_search_users
     from tiktok_scraper.search import iter_search_videos
 
-    if users and music:
-        raise typer.BadParameter("--users and --music can't be used together.")
+    if users + music + photos > 1:
+        raise typer.BadParameter("--users, --music and --photos can't be used together.")
     if users:
         search_function, label = iter_search_users, "accounts"
     elif music:
         search_function, label = iter_search_music, "sounds"
+    elif photos:
+        search_function, label = iter_search_photos, "photo posts"
     else:
         search_function, label = iter_search_videos, "tiktoks"
     _setup_logging(verbose, quiet)

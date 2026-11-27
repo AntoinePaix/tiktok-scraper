@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING
 from typing import Any
 
 from tiktok_scraper.constants import SEARCH_MUSIC_API_URL
+from tiktok_scraper.constants import SEARCH_PHOTOS_API_URL
 from tiktok_scraper.constants import SEARCH_USERS_API_URL
 from tiktok_scraper.constants import SEARCH_VIDEOS_API_URL
 from tiktok_scraper.models import Music
@@ -19,6 +20,7 @@ if TYPE_CHECKING:
 VIDEOS_PER_REQUEST = 12
 USERS_PER_REQUEST = 10
 MUSIC_PER_REQUEST = 10
+PHOTOS_PER_REQUEST = 12
 
 
 async def _paginate_search(
@@ -111,5 +113,27 @@ async def iter_search_music(
             continue
         seen_ids.add(music.id)
         yield music
+        if limit is not None and len(seen_ids) >= limit:
+            return
+
+
+async def iter_search_photos(
+    browser: TikTokBrowser,
+    keyword: str,
+    limit: int | None = None,
+) -> AsyncIterator[TikTok]:
+    """Yield the photo posts (slideshows) found by a keyword search, like the "Photo" tab of the website.
+
+    Args:
+        browser (TikTokBrowser): Started browser, to sign the API requests.
+        keyword (str): Searched keyword, e.g. "nasa".
+        limit (int, optional): Maximum number of slideshows. Defaults to all the results TikTok returns.
+    """
+    seen_ids: set[str] = set()
+    async for item in _paginate_search(browser, SEARCH_PHOTOS_API_URL, keyword, "item_list", PHOTOS_PER_REQUEST):
+        if not item.get("id") or item["id"] in seen_ids:
+            continue
+        seen_ids.add(item["id"])
+        yield TikTok.from_api(item)
         if limit is not None and len(seen_ids) >= limit:
             return

@@ -84,6 +84,7 @@ tiktok-scraper search ukraine > ukraine.jsonl     # first 50 tiktoks
 tiktok-scraper search ukraine -n 200              # first 200 tiktoks
 tiktok-scraper search ukraine --users -n 10       # first 10 accounts
 tiktok-scraper search paris --music -n 20         # first 20 sounds
+tiktok-scraper search nasa --photos -n 20         # first 20 photo posts (slideshows)
 
 # List tiktoks of a hashtag as JSON lines (needs the "playwright" extra, opens a browser window)
 tiktok-scraper hashtag ukraine -n 200 > ukraine.jsonl
@@ -116,6 +117,7 @@ Options specific to tiktok-scraper:
 | `--replies / --no-replies` | on | Also list replies to comments (`comments`) |
 | `--users` | off | Search accounts instead of tiktoks (`search`) |
 | `--music` | off | Search sounds instead of tiktoks (`search`) |
+| `--photos` | off | Search photo posts (slideshows) only, like the website's Photo tab (`search`) |
 | `--headless / --headed` | headless, headed for `hashtag` | Hide the browser window, or show it |
 
 ## Proxies
@@ -147,7 +149,8 @@ TIKTOK_PROXY=http://host:8080 tiktok-scraper info charlidamelio
   Replies come right after their comment.
 - `search` and `hashtag` print one JSON object per tiktok, or per account with `--users` (`id`, `sec_uid`,
   `username`, `nickname`, `signature`, `follower_count`), or per sound with `--music` (same fields as a tiktok's
-  `music` below, plus `video_count`, the number of videos using it). A tiktok has:
+  `music` below, plus `video_count`, the number of videos using it). With `--photos`, every tiktok is a slideshow.
+  A tiktok has:
   - `id`, `url`, `description`, `created_at`, `language`, `hashtags`, `mentions`, `location` (`id`, `name`,
     `address`, `city`, or `null`)
   - `author_id`, `author_username`, `author_nickname`, `author_sec_uid`, `author_verified`
@@ -225,6 +228,7 @@ from tiktok_scraper import get_hashtag
 from tiktok_scraper import iter_comments
 from tiktok_scraper import iter_hashtag_videos
 from tiktok_scraper import iter_search_music
+from tiktok_scraper import iter_search_photos
 from tiktok_scraper import iter_search_users
 from tiktok_scraper import iter_search_videos
 from tiktok_scraper.browser import TikTokBrowser
@@ -244,6 +248,9 @@ async def main():
 
         async for sound in iter_search_music(browser, "paris", limit=10):
             print(sound.title, sound.author, sound.video_count)
+
+        async for slideshow in iter_search_photos(browser, "nasa", limit=10):
+            print(slideshow.url, slideshow.image_count)
 
     # TikTok often refuses hashtag videos to a headless browser: use a visible window.
     async with TikTokBrowser(headless=False) as browser:

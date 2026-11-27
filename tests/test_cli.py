@@ -45,7 +45,8 @@ def test_command_help(command):
     assert "--proxy" in plain_output(result)
 
 
-def test_search_users_and_music_are_exclusive():
-    result = runner.invoke(app, ["search", "paris", "--users", "--music"])
+@pytest.mark.parametrize("flags", [["--users", "--music"], ["--music", "--photos"], ["--users", "--photos"]])
+def test_search_kinds_are_exclusive(flags):
+    result = runner.invoke(app, ["search", "nasa", *flags])
     assert result.exit_code != 0
     assert "can't be used together" in plain_output(result)
