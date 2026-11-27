@@ -70,6 +70,10 @@ tiktok-scraper videos charlidamelio -n 20 --no-progress
 # Print account metadata (profile + statistics) as JSON
 tiktok-scraper info charlidamelio
 
+# Print one tiktok (video or slideshow) as JSON, from its URL or id; --download also saves it
+tiktok-scraper tiktok https://www.tiktok.com/@europeanspaceagency/video/7695112242110418209
+tiktok-scraper tiktok 7695112242110418209 --download
+
 # Print comments and replies of a tiktok as JSON lines (needs the "playwright" extra)
 tiktok-scraper comments https://www.tiktok.com/@emmanuelmacron/video/7703703665818733857 > comments.jsonl
 tiktok-scraper comments 7703703665818733857 --no-replies   # top-level comments only
@@ -134,6 +138,8 @@ TIKTOK_PROXY=http://host:8080 tiktok-scraper info charlidamelio
 - `info` prints a JSON object: `id`, `sec_uid`, `username`, `nickname`, `signature`, `verified`, `private_account`,
   `created_at`, `avatar_url`, `bio_link`, `region`, `language`, `follower_count`, `following_count`,
   `heart_count`, `video_count`, `digg_count`, `friend_count`.
+- `tiktok` prints one tiktok as a JSON object (same fields as below). With `--download`, it is saved like `videos`
+  does: `<output>/<user>/<id>.mp4`, or the `<output>/<user>/<id>/` folder of a slideshow.
 - `comments` prints one JSON object per line: `id`, `video_id`, `text`, `created_at`, `like_count`, `reply_count`,
   `language`, `author_id`, `author_username`, `author_nickname`, `parent_id` (`null` for a top-level comment).
   Replies come right after their comment.
@@ -163,7 +169,9 @@ import asyncio
 import json
 
 from tiktok_scraper import TikTokClient
+from tiktok_scraper import download_tiktok
 from tiktok_scraper import download_user_videos
+from tiktok_scraper import get_tiktok
 from tiktok_scraper import get_user_metadata
 from tiktok_scraper import iter_user_tiktoks
 
@@ -181,6 +189,11 @@ async def main():
 
         report = await download_user_videos("charlidamelio", client=client)
         print(f"{len(report.downloaded)} videos downloaded, {len(report.failed)} failed")
+
+        # One tiktok, from its URL or id (raises TikTokError if it was deleted or is private)
+        tiktok = await get_tiktok(client, "https://www.tiktok.com/@europeanspaceagency/video/7695112242110418209")
+        print(tiktok.description, tiktok.play_count, tiktok.music.title if tiktok.music else None)
+        await download_tiktok(tiktok, client=client)
 
 
 asyncio.run(main())
@@ -323,16 +336,17 @@ the `uv run` prefix.
 ```
 .github/workflows/ci.yml   lint (pre-commit) + tests on Python 3.11 to 3.14
 src/tiktok_scraper/
-├── cli.py          # command line (typer): videos, info, comments, search, hashtag
+├── cli.py          # command line (typer): videos, info, tiktok, comments, search, hashtag
 ├── client.py       # HTTP client: curl_cffi, page rehydration data
 ├── user.py         # account metadata and tiktoks of a user
+├── post.py         # one tiktok from its URL or id
 ├── downloader.py   # parallel video downloads
 ├── progress.py     # rich progress bars
 ├── browser.py      # TikTokBrowser: requests signed by TikTok's script (playwright extra)
 ├── comments.py     # comments and replies (browser)
 ├── search.py       # keyword search (browser)
 ├── hashtag.py      # hashtag videos (browser)
-├── models.py       # TikTok / UserMetadata / Comment / Hashtag data structures
+├── models.py       # pydantic models: TikTok, Music, Location, UserMetadata, Comment, SearchUser, Hashtag
 └── constants.py    # URLs and defaults
 tests/              # pytest suite, JSON fixtures, live smoke tests
 ```

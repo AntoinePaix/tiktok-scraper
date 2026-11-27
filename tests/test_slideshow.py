@@ -2,6 +2,7 @@ import asyncio
 import copy
 
 from tiktok_scraper.downloader import DownloadReport
+from tiktok_scraper.downloader import download_tiktok
 from tiktok_scraper.downloader import process_tiktok
 from tiktok_scraper.models import TikTok
 
@@ -86,3 +87,13 @@ def test_slideshow_already_downloaded(item, tmp_path):
 
     assert report.already_downloaded == [tiktok.id]
     assert client.session.urls == []
+
+
+def test_download_tiktok_into_user_folder(item, tmp_path):
+    tiktok = slideshow(item)
+
+    report = asyncio.run(download_tiktok(tiktok, str(tmp_path), FakeClient()))
+
+    assert report.downloaded == [tiktok.id]
+    folder = tmp_path / tiktok.author_username / tiktok.id
+    assert sorted(path.name for path in folder.iterdir()) == ["1.jpg", "2.jpg", "music.m4a"]

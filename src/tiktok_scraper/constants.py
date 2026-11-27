@@ -15,6 +15,8 @@ class TikTokStatus(enum.IntEnum):
 
     OK = 0
     USER_NOT_FOUND = 10202
+    ITEM_NOT_FOUND = 10204  # statusMsg: "item doesn't exist"
+    PRIVATE_ITEM = 10216
     USER_BANNED = 10221
     PRIVATE_ACCOUNT = 10222
 

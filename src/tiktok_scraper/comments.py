@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import re
 from collections.abc import AsyncIterator
 from typing import TYPE_CHECKING
 from typing import Any
@@ -10,22 +9,13 @@ from typing import Any
 from tiktok_scraper.constants import COMMENTS_API_URL
 from tiktok_scraper.constants import REPLIES_API_URL
 from tiktok_scraper.models import Comment
+from tiktok_scraper.post import extract_video_id
 
 if TYPE_CHECKING:
     from tiktok_scraper.browser import TikTokBrowser
 
 COMMENTS_PER_REQUEST = 50
 REPLIES_PER_REQUEST = 50
-
-
-def extract_video_id(video: str) -> str:
-    """Return the id of a tiktok from its id or URL (e.g. https://www.tiktok.com/@user/video/7019344847035288837)."""
-    if video.isdigit():
-        return video
-    match = re.search(r"/(?:video|photo)/(\d+)", video)
-    if match is None:
-        raise ValueError(f"Unable to extract tiktok id from: {video}")
-    return match.group(1)
 
 
 async def _paginate(

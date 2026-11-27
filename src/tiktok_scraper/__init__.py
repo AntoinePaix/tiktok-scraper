@@ -7,6 +7,7 @@ from tiktok_scraper.client import TikTokError
 from tiktok_scraper.comments import iter_comments
 from tiktok_scraper.comments import iter_replies
 from tiktok_scraper.downloader import DownloadReport
+from tiktok_scraper.downloader import download_tiktok
 from tiktok_scraper.downloader import download_user_videos
 from tiktok_scraper.hashtag import get_hashtag
 from tiktok_scraper.hashtag import iter_hashtag_videos
@@ -17,6 +18,7 @@ from tiktok_scraper.models import Music
 from tiktok_scraper.models import SearchUser
 from tiktok_scraper.models import TikTok
 from tiktok_scraper.models import UserMetadata
+from tiktok_scraper.post import get_tiktok
 from tiktok_scraper.search import iter_search_users
 from tiktok_scraper.search import iter_search_videos
 from tiktok_scraper.user import get_user_info
@@ -36,8 +38,10 @@ __all__ = [
     "TikTokClient",
     "TikTokError",
     "UserMetadata",
+    "download_tiktok",
     "download_user_videos",
     "get_hashtag",
+    "get_tiktok",
     "get_user_info",
     "get_user_metadata",
     "iter_comments",

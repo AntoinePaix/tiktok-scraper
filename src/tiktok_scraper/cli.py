@@ -1,4 +1,4 @@
-"""Command-line interface: ``tiktok-scraper videos|info|comments|search|hashtag ...``."""
+"""Command-line interface: ``tiktok-scraper videos|info|tiktok|comments|search|hashtag ...``."""
 
 from __future__ import annotations
 
@@ -22,7 +22,9 @@ from tiktok_scraper.client import TikTokClient
 from tiktok_scraper.client import TikTokError
 from tiktok_scraper.constants import DOWNLOAD_DIRECTORY
 from tiktok_scraper.constants import MAX_CONCURRENT_DOWNLOADS
+from tiktok_scraper.downloader import download_tiktok
 from tiktok_scraper.downloader import download_user_videos
+from tiktok_scraper.post import get_tiktok
 from tiktok_scraper.progress import ProgressBars
 from tiktok_scraper.user import get_user_metadata
 
@@ -113,6 +115,33 @@ async def _download_videos(
     )
 
 
+async def _print_tiktok(
+    client_options: dict,
+    video: str,
+    download: bool,
+    output: Path,
+    progress: ProgressBars | None,
+) -> None:
+    async with TikTokClient(**client_options) as client:
+        try:
+            tiktok = await get_tiktok(client, video)
+        except ValueError as error:
+            raise TikTokError(str(error)) from error
+        print(json.dumps(tiktok.to_dict(), indent=2, ensure_ascii=False), flush=True)
+        if not download:
+            return
+        with progress or contextlib.nullcontext():
+            report = await download_tiktok(tiktok, str(output), client, progress)
+
+    saved = Path(report.directory) / (tiktok.id if tiktok.is_slideshow else tiktok.video_filename)
+    if report.failed:
+        raise TikTokError(f"Unable to download {tiktok.url}")
+    if report.already_downloaded:
+        console.print(f"[green]✓[/] Already downloaded: {saved}")
+    else:
+        console.print(f"[green]✓[/] Downloaded: {saved}")
+
+
 async def _print_browser_results(browser_options: dict, iterate: Callable, label: str) -> None:
     """Start a `TikTokBrowser`, then print the results of `iterate(browser)` as JSON lines."""
     try:
@@ -200,6 +229,45 @@ def info(
     _setup_logging(verbose, quiet)
     client_options = {"proxy": proxy, "timeout": timeout, "impersonate": impersonate}
     _execute(_print_user_metadata(client_options, user))
+
+
+@app.command()
+def tiktok(
+    video: Annotated[str, typer.Argument(help="TikTok URL (video or photo) or id.")],
+    download: Annotated[
+        bool,
+        typer.Option(
+            "--download",
+            "-d",
+            help="Also download it: OUTPUT/<user>/<id>.mp4, or OUTPUT/<user>/<id>/ for a slideshow.",
+            rich_help_panel="Output",
+        ),
+    ] = False,
+    output: Annotated[
+        Path,
+        typer.Option("--output", "-o", help="Download root folder.", rich_help_panel="Output"),
+    ] = Path(DOWNLOAD_DIRECTORY),
+    progress: Annotated[
+        bool,
+        typer.Option(
+            "--progress/--no-progress",
+            help="Show a live progress bar (on a terminal).",
+            rich_help_panel="Output",
+        ),
+    ] = True,
+    proxy: ProxyOpt = None,
+    timeout: TimeoutOpt = 30,
+    impersonate: ImpersonateOpt = IMPERSONATE_TARGET,
+    verbose: VerboseOpt = 0,
+    quiet: QuietOpt = False,
+) -> None:
+    """Print one tiktok (video or slideshow) as JSON, and download it with --download."""
+    bars = ProgressBars(console) if download and progress else None
+    if bars and not bars.usable:
+        bars = None
+    _setup_logging(verbose, quiet)
+    client_options = {"proxy": proxy, "timeout": timeout, "impersonate": impersonate}
+    _execute(_print_tiktok(client_options, video, download, output, bars))
 
 
 @app.command()

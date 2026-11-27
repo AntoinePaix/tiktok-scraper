@@ -13,6 +13,7 @@ from tiktok_scraper.constants import DOWNLOAD_DIRECTORY
 from tiktok_scraper.constants import MAX_CONCURRENT_DOWNLOADS
 from tiktok_scraper.constants import USER_URL_FORMAT
 from tiktok_scraper.models import TikTok
+from tiktok_scraper.post import get_tiktok
 from tiktok_scraper.progress import Observer
 from tiktok_scraper.user import get_user_info
 from tiktok_scraper.user import iter_user_tiktoks
@@ -86,12 +87,10 @@ async def download_video(
 async def get_tiktok_detail(client: TikTokClient, tiktok: TikTok) -> TikTok:
     """Fetch the video page of a tiktok, like yt-dlp does, to get fresh video URLs and their cookies."""
     try:
-        universal_data = await client.get_universal_data(tiktok.url)
+        return await get_tiktok(client, tiktok.id)
     except Exception as error:
         logger.warning("Unable to fetch %s: %s", tiktok.url, error)
         return tiktok
-    item = (universal_data.get("webapp.video-detail") or {}).get("itemInfo", {}).get("itemStruct")
-    return TikTok.from_api(item) if item and item.get("video") else tiktok
 
 
 async def download_first(
@@ -251,4 +250,35 @@ async def download_user_videos(
             if progress:
                 progress.queued()
             task_group.create_task(process_tiktok(client, tiktok, report, semaphore, progress))
+    return report
+
+
+async def download_tiktok(
+    tiktok: TikTok,
+    output_directory: str = DOWNLOAD_DIRECTORY,
+    client: TikTokClient | None = None,
+    progress: Observer | None = None,
+) -> DownloadReport:
+    """Download one tiktok into `output_directory/<user>/`, like `download_user_videos` does for each of a user's.
+
+    A video is saved as `<id>.mp4`, a slideshow in a `<id>/` folder with its images and its music.
+
+    Args:
+        tiktok (TikTok): Tiktok to download, e.g. from `get_tiktok`.
+        output_directory (str, optional): Root directory of the downloads.
+        client (TikTokClient, optional): Client to use. It is not closed afterwards. Defaults to a new client.
+        progress (Observer, optional): Told about the download, e.g. a `ProgressBars`.
+
+    Returns:
+        DownloadReport: Outcome of the download (`downloaded`, `already_downloaded` or `failed`).
+    """
+    if client is None:
+        async with TikTokClient() as client:
+            return await download_tiktok(tiktok, output_directory, client, progress)
+
+    report = DownloadReport(directory=os.path.join(output_directory, tiktok.author_username or "_"))
+    os.makedirs(report.directory, exist_ok=True)
+    if progress:
+        progress.queued()
+    await process_tiktok(client, tiktok, report, asyncio.Semaphore(1), progress)
     return report

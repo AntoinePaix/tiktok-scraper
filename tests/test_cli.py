@@ -30,6 +30,7 @@ def test_help_lists_commands():
     for command in (
         "videos",
         "info",
+        "tiktok",
         "comments",
         "search",
         "hashtag",
@@ -37,7 +38,7 @@ def test_help_lists_commands():
         assert command in plain_output(result)
 
 
-@pytest.mark.parametrize("command", ["videos", "info", "comments", "search", "hashtag"])
+@pytest.mark.parametrize("command", ["videos", "info", "tiktok", "comments", "search", "hashtag"])
 def test_command_help(command):
     result = runner.invoke(app, [command, "--help"])
     assert result.exit_code == 0
