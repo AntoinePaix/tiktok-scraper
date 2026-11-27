@@ -6,6 +6,18 @@ readme = "README.md"
 license = "MIT"
 authors = [{ name = "Antoine Paix" }]
 requires-python = ">=3.11"
+# Keep the Python versions in sync with the test matrix of .github/workflows/ci.yml.
+classifiers = [
+    "Environment :: Console",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Typing :: Typed",
+]
 dependencies = [
     "aiofiles>=25.1",
     "curl-cffi>=0.17",
