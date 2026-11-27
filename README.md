@@ -1,6 +1,7 @@
 # tokscrape
 
 [![CI](https://github.com/AntoinePaix/tokscrape/actions/workflows/ci.yml/badge.svg)](https://github.com/AntoinePaix/tokscrape/actions/workflows/ci.yml)
+[![PyPI](https://img.shields.io/pypi/v/tokscrape)](https://pypi.org/project/tokscrape/)
 
 `tokscrape` is a Python package and command-line tool that downloads TikTok videos, account metadata,
 comments, hashtag videos and keyword search results.
