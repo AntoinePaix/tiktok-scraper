@@ -5,8 +5,8 @@ import re
 import pytest
 from typer.testing import CliRunner
 
-from tiktok_scraper import __version__
-from tiktok_scraper.cli import app
+from tokscrape import __version__
+from tokscrape.cli import app
 
 runner = CliRunner()
 
@@ -21,7 +21,7 @@ def plain_output(result) -> str:
 def test_version():
     result = runner.invoke(app, ["--version"])
     assert result.exit_code == 0
-    assert plain_output(result).strip() == f"tiktok-scraper {__version__}"
+    assert plain_output(result).strip() == f"tokscrape {__version__}"
 
 
 def test_help_lists_commands():

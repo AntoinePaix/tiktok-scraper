@@ -3,12 +3,12 @@ import copy
 
 import pytest
 
-from tiktok_scraper import Hashtag
-from tiktok_scraper import TikTokError
-from tiktok_scraper import get_hashtag
-from tiktok_scraper import iter_hashtag_videos
-from tiktok_scraper.constants import HASHTAG_DETAIL_API_URL
-from tiktok_scraper.constants import HASHTAG_VIDEOS_API_URL
+from tokscrape import Hashtag
+from tokscrape import TikTokError
+from tokscrape import get_hashtag
+from tokscrape import iter_hashtag_videos
+from tokscrape.constants import HASHTAG_DETAIL_API_URL
+from tokscrape.constants import HASHTAG_VIDEOS_API_URL
 
 DETAIL = {
     "statusCode": 0,

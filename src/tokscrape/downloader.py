@@ -8,15 +8,15 @@ import os
 import aiofiles
 import aiofiles.os
 
-from tiktok_scraper.client import TikTokClient
-from tiktok_scraper.constants import DOWNLOAD_DIRECTORY
-from tiktok_scraper.constants import MAX_CONCURRENT_DOWNLOADS
-from tiktok_scraper.constants import USER_URL_FORMAT
-from tiktok_scraper.models import TikTok
-from tiktok_scraper.post import get_tiktok
-from tiktok_scraper.progress import Observer
-from tiktok_scraper.user import get_user_info
-from tiktok_scraper.user import iter_user_tiktoks
+from tokscrape.client import TikTokClient
+from tokscrape.constants import DOWNLOAD_DIRECTORY
+from tokscrape.constants import MAX_CONCURRENT_DOWNLOADS
+from tokscrape.constants import USER_URL_FORMAT
+from tokscrape.models import TikTok
+from tokscrape.post import get_tiktok
+from tokscrape.progress import Observer
+from tokscrape.user import get_user_info
+from tokscrape.user import iter_user_tiktoks
 
 logger = logging.getLogger(__name__)
 
@@ -222,7 +222,7 @@ async def download_user_videos(
             Defaults to all. Each slideshow is saved in its own folder named after its id: `<id>/1.jpg`,
             `<id>/2.jpg`... and its music as `<id>/music.m4a`.
         progress (Observer, optional): Told about each tiktok queued, started, advanced and finished, e.g. a
-            `tiktok_scraper.progress.ProgressBars` for a live progress bar.
+            `tokscrape.progress.ProgressBars` for a live progress bar.
 
     Returns:
         DownloadReport: Outcome of the download of each tiktok.

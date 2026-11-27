@@ -3,10 +3,10 @@ import copy
 
 import pytest
 
-from tiktok_scraper import TikTokError
-from tiktok_scraper import get_user_metadata
-from tiktok_scraper import iter_user_tiktoks
-from tiktok_scraper.constants import TikTokStatus
+from tokscrape import TikTokError
+from tokscrape import get_user_metadata
+from tokscrape import iter_user_tiktoks
+from tokscrape.constants import TikTokStatus
 
 
 class FakeClient:

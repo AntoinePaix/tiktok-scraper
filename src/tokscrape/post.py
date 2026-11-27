@@ -4,11 +4,11 @@ from __future__ import annotations
 
 import re
 
-from tiktok_scraper.client import TikTokClient
-from tiktok_scraper.client import TikTokError
-from tiktok_scraper.constants import VIDEO_URL_FORMAT
-from tiktok_scraper.constants import TikTokStatus
-from tiktok_scraper.models import TikTok
+from tokscrape.client import TikTokClient
+from tokscrape.client import TikTokError
+from tokscrape.constants import VIDEO_URL_FORMAT
+from tokscrape.constants import TikTokStatus
+from tokscrape.models import TikTok
 
 
 def extract_video_id(video: str) -> str:

@@ -1,4 +1,4 @@
-"""Command-line interface: ``tiktok-scraper videos|info|tiktok|comments|search|hashtag ...``."""
+"""Command-line interface: ``tokscrape videos|info|tiktok|comments|search|hashtag ...``."""
 
 from __future__ import annotations
 
@@ -16,17 +16,17 @@ from curl_cffi.requests.exceptions import RequestException
 from rich.console import Console
 from rich.logging import RichHandler
 
-from tiktok_scraper import __version__
-from tiktok_scraper.client import IMPERSONATE_TARGET
-from tiktok_scraper.client import TikTokClient
-from tiktok_scraper.client import TikTokError
-from tiktok_scraper.constants import DOWNLOAD_DIRECTORY
-from tiktok_scraper.constants import MAX_CONCURRENT_DOWNLOADS
-from tiktok_scraper.downloader import download_tiktok
-from tiktok_scraper.downloader import download_user_videos
-from tiktok_scraper.post import get_tiktok
-from tiktok_scraper.progress import ProgressBars
-from tiktok_scraper.user import get_user_metadata
+from tokscrape import __version__
+from tokscrape.client import IMPERSONATE_TARGET
+from tokscrape.client import TikTokClient
+from tokscrape.client import TikTokError
+from tokscrape.constants import DOWNLOAD_DIRECTORY
+from tokscrape.constants import MAX_CONCURRENT_DOWNLOADS
+from tokscrape.downloader import download_tiktok
+from tokscrape.downloader import download_user_videos
+from tokscrape.post import get_tiktok
+from tokscrape.progress import ProgressBars
+from tokscrape.user import get_user_metadata
 
 console = Console(stderr=True)
 app = typer.Typer(
@@ -77,7 +77,7 @@ def _setup_logging(verbose: int, quiet: bool, log_console: Console = console) ->
         handlers=[RichHandler(console=log_console, show_path=False)],
         force=True,
     )
-    logging.getLogger("tiktok_scraper").setLevel(level)
+    logging.getLogger("tokscrape").setLevel(level)
 
 
 def _execute(coro) -> None:
@@ -147,10 +147,10 @@ async def _print_browser_results(browser_options: dict, iterate: Callable, label
     try:
         from patchright.async_api import Error as PlaywrightError
 
-        from tiktok_scraper.browser import TikTokBrowser
+        from tokscrape.browser import TikTokBrowser
     except ImportError as error:
         raise TikTokError(
-            'This command needs the "playwright" extra: pip install "tiktok-scraper[playwright]" '
+            'This command needs the "playwright" extra: pip install "tokscrape[playwright]" '
             "(or uv sync --extra playwright), then run: patchright install chromium",
         ) from error
 
@@ -168,8 +168,8 @@ async def _print_browser_results(browser_options: dict, iterate: Callable, label
 
 
 async def _iter_hashtag_videos_with_info(browser, name: str, limit: int):
-    from tiktok_scraper.hashtag import get_hashtag
-    from tiktok_scraper.hashtag import iter_hashtag_videos
+    from tokscrape.hashtag import get_hashtag
+    from tokscrape.hashtag import iter_hashtag_videos
 
     hashtag = await get_hashtag(browser, name)
     console.print(f"#{hashtag.name} (id {hashtag.id}): {hashtag.video_count} videos, {hashtag.view_count} views")
@@ -281,7 +281,7 @@ def comments(
     quiet: QuietOpt = False,
 ) -> None:
     """Print the comments of a tiktok as JSON lines (needs the "playwright" extra)."""
-    from tiktok_scraper.comments import iter_comments
+    from tokscrape.comments import iter_comments
 
     _setup_logging(verbose, quiet)
     browser_options = {"proxy": proxy, "timeout": timeout, "headless": headless}
@@ -306,10 +306,10 @@ def search(
     quiet: QuietOpt = False,
 ) -> None:
     """Search tiktoks (or accounts, sounds, photo posts) by keyword, as JSON lines (needs the "playwright" extra)."""
-    from tiktok_scraper.search import iter_search_music
-    from tiktok_scraper.search import iter_search_photos
-    from tiktok_scraper.search import iter_search_users
-    from tiktok_scraper.search import iter_search_videos
+    from tokscrape.search import iter_search_music
+    from tokscrape.search import iter_search_photos
+    from tokscrape.search import iter_search_users
+    from tokscrape.search import iter_search_videos
 
     if users + music + photos > 1:
         raise typer.BadParameter("--users, --music and --photos can't be used together.")
@@ -347,7 +347,7 @@ def hashtag(
 
 def _version(value: bool) -> None:
     if value:
-        typer.echo(f"tiktok-scraper {__version__}")
+        typer.echo(f"tokscrape {__version__}")
         raise typer.Exit()
 
 

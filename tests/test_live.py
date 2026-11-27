@@ -4,8 +4,8 @@ import asyncio
 
 import pytest
 
-from tiktok_scraper import TikTokClient
-from tiktok_scraper import get_user_metadata
+from tokscrape import TikTokClient
+from tokscrape import get_user_metadata
 
 pytestmark = pytest.mark.live
 

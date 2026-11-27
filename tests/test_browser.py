@@ -5,9 +5,9 @@ import pytest
 
 pytest.importorskip("patchright")
 
-from tiktok_scraper import TikTokError
-from tiktok_scraper import browser as browser_module
-from tiktok_scraper.browser import proxy_settings
+from tokscrape import TikTokError
+from tokscrape import browser as browser_module
+from tokscrape.browser import proxy_settings
 
 
 @pytest.mark.parametrize(

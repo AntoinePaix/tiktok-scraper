@@ -5,9 +5,9 @@ import json
 
 import pytest
 
-from tiktok_scraper import TikTokClient
-from tiktok_scraper import TikTokError
-from tiktok_scraper.client import extract_universal_data
+from tokscrape import TikTokClient
+from tokscrape import TikTokError
+from tokscrape.client import extract_universal_data
 
 
 @pytest.fixture

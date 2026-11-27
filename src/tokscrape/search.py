@@ -6,16 +6,16 @@ from collections.abc import AsyncIterator
 from typing import TYPE_CHECKING
 from typing import Any
 
-from tiktok_scraper.constants import SEARCH_MUSIC_API_URL
-from tiktok_scraper.constants import SEARCH_PHOTOS_API_URL
-from tiktok_scraper.constants import SEARCH_USERS_API_URL
-from tiktok_scraper.constants import SEARCH_VIDEOS_API_URL
-from tiktok_scraper.models import Music
-from tiktok_scraper.models import SearchUser
-from tiktok_scraper.models import TikTok
+from tokscrape.constants import SEARCH_MUSIC_API_URL
+from tokscrape.constants import SEARCH_PHOTOS_API_URL
+from tokscrape.constants import SEARCH_USERS_API_URL
+from tokscrape.constants import SEARCH_VIDEOS_API_URL
+from tokscrape.models import Music
+from tokscrape.models import SearchUser
+from tokscrape.models import TikTok
 
 if TYPE_CHECKING:
-    from tiktok_scraper.browser import TikTokBrowser
+    from tokscrape.browser import TikTokBrowser
 
 VIDEOS_PER_REQUEST = 12
 USERS_PER_REQUEST = 10

@@ -3,15 +3,15 @@ import copy
 import json
 from pathlib import Path
 
-from tiktok_scraper.constants import SEARCH_MUSIC_API_URL
-from tiktok_scraper.constants import SEARCH_PHOTOS_API_URL
-from tiktok_scraper.constants import SEARCH_USERS_API_URL
-from tiktok_scraper.constants import SEARCH_VIDEOS_API_URL
-from tiktok_scraper.models import Music
-from tiktok_scraper.search import iter_search_music
-from tiktok_scraper.search import iter_search_photos
-from tiktok_scraper.search import iter_search_users
-from tiktok_scraper.search import iter_search_videos
+from tokscrape.constants import SEARCH_MUSIC_API_URL
+from tokscrape.constants import SEARCH_PHOTOS_API_URL
+from tokscrape.constants import SEARCH_USERS_API_URL
+from tokscrape.constants import SEARCH_VIDEOS_API_URL
+from tokscrape.models import Music
+from tokscrape.search import iter_search_music
+from tokscrape.search import iter_search_photos
+from tokscrape.search import iter_search_users
+from tokscrape.search import iter_search_videos
 
 
 class FakeBrowser:

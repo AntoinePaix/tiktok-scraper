@@ -5,8 +5,8 @@ import urllib.parse
 import pydantic
 import pytest
 
-from tiktok_scraper import TikTok
-from tiktok_scraper import UserMetadata
+from tokscrape import TikTok
+from tokscrape import UserMetadata
 
 
 def test_tiktok_properties(item):

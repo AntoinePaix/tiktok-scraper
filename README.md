@@ -1,8 +1,8 @@
-# tiktok-scraper
+# tokscrape
 
-[![CI](https://github.com/AntoinePaix/tiktok-scraper/actions/workflows/ci.yml/badge.svg)](https://github.com/AntoinePaix/tiktok-scraper/actions/workflows/ci.yml)
+[![CI](https://github.com/AntoinePaix/tokscrape/actions/workflows/ci.yml/badge.svg)](https://github.com/AntoinePaix/tokscrape/actions/workflows/ci.yml)
 
-`tiktok-scraper` is a Python package and command-line tool that downloads TikTok videos, account metadata,
+`tokscrape` is a Python package and command-line tool that downloads TikTok videos, account metadata,
 comments, hashtag videos and keyword search results.
 
 - Videos and account metadata without a browser: requests with [curl_cffi](https://github.com/lexiforest/curl_cffi),
@@ -12,25 +12,25 @@ comments, hashtag videos and keyword search results.
 - Parallel video downloads with live [rich](https://github.com/Textualize/rich) progress bars; videos already
   downloaded are skipped
 - HTTP(S) and SOCKS proxies
-- Command `tiktok-scraper`, or `python -m tiktok_scraper`, or use it as a library
+- Command `tokscrape`, or `python -m tokscrape`, or use it as a library
 
 Requires Python 3.11 or later.
 
 ## Installation
 
-Pick one of the options below. They all install the `tiktok-scraper` command.
+Pick one of the options below. They all install the `tokscrape` command.
 
 ### With uv
 
 ```bash
 # As a tool, available everywhere:
-uv tool install git+https://github.com/AntoinePaix/tiktok-scraper
+uv tool install git+https://github.com/AntoinePaix/tokscrape
 
 # Or from a clone (runs from the project's own virtual environment):
-git clone https://github.com/AntoinePaix/tiktok-scraper
-cd tiktok-scraper
+git clone https://github.com/AntoinePaix/tokscrape
+cd tokscrape
 uv sync
-uv run tiktok-scraper --help
+uv run tokscrape --help
 ```
 
 ### With pip
@@ -38,7 +38,7 @@ uv run tiktok-scraper --help
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate        # Windows: .venv\Scripts\activate
-pip install git+https://github.com/AntoinePaix/tiktok-scraper
+pip install git+https://github.com/AntoinePaix/tokscrape
 ```
 
 pip ignores `uv.lock` and installs the latest versions allowed by `pyproject.toml`. To get the exact locked
@@ -51,7 +51,7 @@ The `playwright` extra installs [patchright](https://github.com/Kaliiiiiiiiii-Vi
 Playwright which removes the main automation leaks, then a Chromium build:
 
 ```bash
-uv sync --extra playwright           # or: pip install "tiktok-scraper[playwright] @ git+https://github.com/AntoinePaix/tiktok-scraper"
+uv sync --extra playwright           # or: pip install "tokscrape[playwright] @ git+https://github.com/AntoinePaix/tokscrape"
 uv run patchright install chromium   # downloads Chromium into ~/.cache/ms-playwright
 ```
 
@@ -59,35 +59,35 @@ uv run patchright install chromium   # downloads Chromium into ~/.cache/ms-playw
 
 ```bash
 # Download all videos of a user into downloaded_videos/<user>/
-tiktok-scraper videos charlidamelio
+tokscrape videos charlidamelio
 
 # Same, into another directory with 8 parallel downloads
-tiktok-scraper videos charlidamelio -o videos -c 8
+tokscrape videos charlidamelio -o videos -c 8
 
 # Only the 20 last published tiktoks, without the progress bars (plain log lines)
-tiktok-scraper videos charlidamelio -n 20 --no-progress
+tokscrape videos charlidamelio -n 20 --no-progress
 
 # Print account metadata (profile + statistics) as JSON
-tiktok-scraper info charlidamelio
+tokscrape info charlidamelio
 
 # Print one tiktok (video or slideshow) as JSON, from its URL or id; --download also saves it
-tiktok-scraper tiktok https://www.tiktok.com/@europeanspaceagency/video/7695112242110418209
-tiktok-scraper tiktok 7695112242110418209 --download
+tokscrape tiktok https://www.tiktok.com/@europeanspaceagency/video/7695112242110418209
+tokscrape tiktok 7695112242110418209 --download
 
 # Print comments and replies of a tiktok as JSON lines (needs the "playwright" extra)
-tiktok-scraper comments https://www.tiktok.com/@emmanuelmacron/video/7703703665818733857 > comments.jsonl
-tiktok-scraper comments 7703703665818733857 --no-replies   # top-level comments only
-tiktok-scraper comments 7703703665818733857 --headed       # show the browser window
+tokscrape comments https://www.tiktok.com/@emmanuelmacron/video/7703703665818733857 > comments.jsonl
+tokscrape comments 7703703665818733857 --no-replies   # top-level comments only
+tokscrape comments 7703703665818733857 --headed       # show the browser window
 
 # Search tiktoks, or accounts, by keyword as JSON lines (needs the "playwright" extra)
-tiktok-scraper search ukraine > ukraine.jsonl     # first 50 tiktoks
-tiktok-scraper search ukraine -n 200              # first 200 tiktoks
-tiktok-scraper search ukraine --users -n 10       # first 10 accounts
-tiktok-scraper search paris --music -n 20         # first 20 sounds
-tiktok-scraper search nasa --photos -n 20         # first 20 photo posts (slideshows)
+tokscrape search ukraine > ukraine.jsonl     # first 50 tiktoks
+tokscrape search ukraine -n 200              # first 200 tiktoks
+tokscrape search ukraine --users -n 10       # first 10 accounts
+tokscrape search paris --music -n 20         # first 20 sounds
+tokscrape search nasa --photos -n 20         # first 20 photo posts (slideshows)
 
 # List tiktoks of a hashtag as JSON lines (needs the "playwright" extra, opens a browser window)
-tiktok-scraper hashtag ukraine -n 200 > ukraine.jsonl
+tokscrape hashtag ukraine -n 200 > ukraine.jsonl
 ```
 
 From a clone installed with `uv sync`, prefix the commands with `uv run`. Results go to stdout, logs and progress to
@@ -108,7 +108,7 @@ Same options, with the same names, in every command (and in the other scraper re
 | `-q`, `--quiet` | | Only show warnings and errors |
 | `--version` | | Show the version and exit |
 
-Options specific to tiktok-scraper:
+Options specific to tokscrape:
 
 | Option | Default | Description |
 | --- | --- | --- |
@@ -123,9 +123,9 @@ Options specific to tiktok-scraper:
 ## Proxies
 
 ```bash
-tiktok-scraper info charlidamelio -x http://user:password@host:8080
-tiktok-scraper videos charlidamelio -x socks5h://127.0.0.1:1080 --timeout 60
-TIKTOK_PROXY=http://host:8080 tiktok-scraper info charlidamelio
+tokscrape info charlidamelio -x http://user:password@host:8080
+tokscrape videos charlidamelio -x socks5h://127.0.0.1:1080 --timeout 60
+TIKTOK_PROXY=http://host:8080 tokscrape info charlidamelio
 ```
 
 - **Formats**: `http://`, `https://`, `socks5://` or `socks5h://` URLs, with optional `user:password@`. Use
@@ -174,12 +174,12 @@ Account metadata, tiktoks and video downloads:
 import asyncio
 import json
 
-from tiktok_scraper import TikTokClient
-from tiktok_scraper import download_tiktok
-from tiktok_scraper import download_user_videos
-from tiktok_scraper import get_tiktok
-from tiktok_scraper import get_user_metadata
-from tiktok_scraper import iter_user_tiktoks
+from tokscrape import TikTokClient
+from tokscrape import download_tiktok
+from tokscrape import download_user_videos
+from tokscrape import get_tiktok
+from tokscrape import get_user_metadata
+from tokscrape import iter_user_tiktoks
 
 
 async def main():
@@ -216,7 +216,7 @@ Every request goes through a `TikTokClient`, so options are given when creating 
 | `**session_options` | | Any other `curl_cffi.requests.AsyncSession` option, e.g. `retry`, `verify`, `interface` |
 
 `download_user_videos` uses the client you pass and doesn't close it; without one, it creates a client with default
-options. Pass a `tiktok_scraper.progress.ProgressBars` as its `progress=` argument to get the same bars as the
+options. Pass a `tokscrape.progress.ProgressBars` as its `progress=` argument to get the same bars as the
 command (any object implementing the `Observer` protocol works).
 
 Comments, search and hashtags, with the `playwright` extra:
@@ -224,14 +224,14 @@ Comments, search and hashtags, with the `playwright` extra:
 ```python
 import asyncio
 
-from tiktok_scraper import get_hashtag
-from tiktok_scraper import iter_comments
-from tiktok_scraper import iter_hashtag_videos
-from tiktok_scraper import iter_search_music
-from tiktok_scraper import iter_search_photos
-from tiktok_scraper import iter_search_users
-from tiktok_scraper import iter_search_videos
-from tiktok_scraper.browser import TikTokBrowser
+from tokscrape import get_hashtag
+from tokscrape import iter_comments
+from tokscrape import iter_hashtag_videos
+from tokscrape import iter_search_music
+from tokscrape import iter_search_photos
+from tokscrape import iter_search_users
+from tokscrape import iter_search_videos
+from tokscrape.browser import TikTokBrowser
 
 
 async def main():
@@ -273,7 +273,7 @@ asyncio.run(main())
 | `channel` | `"chromium"` | `"chromium"`, or `"chrome"` to use Google Chrome installed on the system (harder to detect) |
 | `timeout` | `30` | Timeout of page loads, in seconds |
 
-Errors raise `tiktok_scraper.TikTokError`. The library logs with the `logging` module under the `tiktok_scraper`
+Errors raise `tokscrape.TikTokError`. The library logs with the `logging` module under the `tokscrape`
 logger.
 
 ### Adding an endpoint
@@ -311,7 +311,7 @@ developer tools on `/api/`, and keep the parameters that are not common ones (`k
   `reply_count == 3` may come with only 1 reply.
 - Hashtag videos are often refused (empty response) to a headless browser, even with the patches: the `hashtag`
   command opens a visible window by default (`--headless` to hide it). On a server without a display, run it in a
-  virtual one: `xvfb-run tiktok-scraper hashtag ukraine`.
+  virtual one: `xvfb-run tokscrape hashtag ukraine`.
 - A hashtag's feed also contains videos without the hashtag in their description: TikTok's ranking, not a bug.
 - Sound search (`--music`) uses an endpoint the website has but no longer shows (no "Sounds" tab): it may disappear.
   Places can't be searched on the web, unlike in the app; a tiktok's place is in its `location` field.
@@ -322,7 +322,7 @@ developer tools on `/api/`, and keep the parameters that are not common ones (`k
 
 ## Development
 
-The four scraper repos (snapchat-cli, tiktok-scraper, vinted-api, scraping-classement-atout-france) share the same
+The four scraper repos (snapchat-cli, tokscrape, vinted-api, scraping-classement-atout-france) share the same
 tooling: [uv](https://docs.astral.sh/uv/), [ruff](https://docs.astral.sh/ruff/), [pytest](https://docs.pytest.org/),
 [pre-commit](https://pre-commit.com/) and the same GitHub Actions pipeline.
 
@@ -363,15 +363,42 @@ git push origin main v0.5.0                       # the release workflow publish
 ```
 
 A released version can be installed without cloning the repository:
-`pip install git+https://github.com/AntoinePaix/tiktok-scraper@v0.5.0`, or from the wheel attached to the release.
-The name `tiktok-scraper` is already taken on PyPI by another project, so releases are not published there.
+`pip install git+https://github.com/AntoinePaix/tokscrape@v0.5.0`, or from the wheel attached to the release.
+The package is named `tokscrape` because `tiktok-scraper` is taken on PyPI by another project (which also
+installs a `tiktok_scraper` module and a `tiktok-scraper` command). Releases are not on PyPI yet: test uploads
+go to TestPyPI (see below).
+
+### Test uploads to TestPyPI
+
+`.github/workflows/testpypi.yml` publishes a development version (e.g. `0.5.0.dev12`, unique for each run) to
+[TestPyPI](https://test.pypi.org/project/tokscrape/), then installs it back and runs `tokscrape --version`. It uses
+PyPI's [Trusted Publishing](https://docs.pypi.org/trusted-publishers/): no token is stored, TestPyPI trusts the
+workflow itself. One-time setup, on a [TestPyPI account](https://test.pypi.org/account/register/) (separate from
+PyPI), in *Your account > Publishing > Add a new pending publisher*, GitHub tab:
+
+| Field | Value |
+| --- | --- |
+| PyPI Project Name | `tokscrape` |
+| Owner | `AntoinePaix` |
+| Repository name | `tokscrape` |
+| Workflow name | `testpypi.yml` |
+| Environment name | `testpypi` |
+
+Then run it from GitHub: *Actions > TestPyPI > Run workflow*. To install a test version (only `tokscrape` from
+TestPyPI, its dependencies from PyPI):
+
+```bash
+pip install aiofiles curl-cffi pydantic rich typer                                   # dependencies, from PyPI
+pip install --no-deps --index-url https://test.pypi.org/simple/ tokscrape==0.5.0.dev12  # the package, from TestPyPI
+```
 
 ### Repository layout
 
 ```
 .github/workflows/ci.yml        lint (pre-commit) + tests on Python 3.11 to 3.14
 .github/workflows/release.yml   GitHub release on a version tag (v*)
-src/tiktok_scraper/
+.github/workflows/testpypi.yml  test upload to TestPyPI, run by hand
+src/tokscrape/
 ├── cli.py          # command line (typer): videos, info, tiktok, comments, search, hashtag
 ├── client.py       # HTTP client: curl_cffi, page rehydration data
 ├── user.py         # account metadata and tiktoks of a user

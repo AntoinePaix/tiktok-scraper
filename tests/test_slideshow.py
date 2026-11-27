@@ -1,10 +1,10 @@
 import asyncio
 import copy
 
-from tiktok_scraper.downloader import DownloadReport
-from tiktok_scraper.downloader import download_tiktok
-from tiktok_scraper.downloader import process_tiktok
-from tiktok_scraper.models import TikTok
+from tokscrape.downloader import DownloadReport
+from tokscrape.downloader import download_tiktok
+from tokscrape.downloader import process_tiktok
+from tokscrape.models import TikTok
 
 IMAGES = {
     "https://cdn.example/1a.jpeg": b"first image",

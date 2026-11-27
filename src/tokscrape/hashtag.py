@@ -8,15 +8,15 @@ from __future__ import annotations
 from collections.abc import AsyncIterator
 from typing import TYPE_CHECKING
 
-from tiktok_scraper.client import TikTokError
-from tiktok_scraper.constants import HASHTAG_DETAIL_API_URL
-from tiktok_scraper.constants import HASHTAG_VIDEOS_API_URL
-from tiktok_scraper.constants import TikTokStatus
-from tiktok_scraper.models import Hashtag
-from tiktok_scraper.models import TikTok
+from tokscrape.client import TikTokError
+from tokscrape.constants import HASHTAG_DETAIL_API_URL
+from tokscrape.constants import HASHTAG_VIDEOS_API_URL
+from tokscrape.constants import TikTokStatus
+from tokscrape.models import Hashtag
+from tokscrape.models import TikTok
 
 if TYPE_CHECKING:
-    from tiktok_scraper.browser import TikTokBrowser
+    from tokscrape.browser import TikTokBrowser
 
 VIDEOS_PER_REQUEST = 30
 

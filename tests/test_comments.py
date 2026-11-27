@@ -3,11 +3,11 @@ import datetime
 
 import pytest
 
-from tiktok_scraper import Comment
-from tiktok_scraper import iter_comments
-from tiktok_scraper.comments import extract_video_id
-from tiktok_scraper.constants import COMMENTS_API_URL
-from tiktok_scraper.constants import REPLIES_API_URL
+from tokscrape import Comment
+from tokscrape import iter_comments
+from tokscrape.comments import extract_video_id
+from tokscrape.constants import COMMENTS_API_URL
+from tokscrape.constants import REPLIES_API_URL
 
 VIDEO_ID = "7703703665818733857"
 

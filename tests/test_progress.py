@@ -3,8 +3,8 @@ import os
 
 from rich.console import Console
 
-from tiktok_scraper.downloader import download_video
-from tiktok_scraper.progress import ProgressBars
+from tokscrape.downloader import download_video
+from tokscrape.progress import ProgressBars
 
 
 class RecordingObserver:

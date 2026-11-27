@@ -5,7 +5,7 @@ Most TikTok API endpoints only answer requests signed by the obfuscated `webmssd
 the API requests from inside the page, where TikTok's own script signs them.
 
 It uses patchright, a patched Playwright which removes the main automation leaks. Install it with
-`pip install "tiktok-scraper[playwright]"`, then `patchright install chromium`.
+`pip install "tokscrape[playwright]"`, then `patchright install chromium`.
 """
 
 from __future__ import annotations
@@ -19,8 +19,8 @@ import tempfile
 import urllib.parse
 from typing import Any
 
-from tiktok_scraper.client import TikTokError
-from tiktok_scraper.constants import WEBPAGE_URL
+from tokscrape.client import TikTokError
+from tokscrape.constants import WEBPAGE_URL
 
 try:
     from patchright.async_api import BrowserContext
@@ -30,7 +30,7 @@ try:
     from patchright.async_api import async_playwright
 except ImportError as error:  # pragma: no cover - depends on the installed extras
     raise ImportError(
-        'TikTokBrowser needs the "playwright" extra: pip install "tiktok-scraper[playwright]", '
+        'TikTokBrowser needs the "playwright" extra: pip install "tokscrape[playwright]", '
         "then run: patchright install chromium",
     ) from error
 
@@ -186,7 +186,7 @@ class TikTokBrowser:
         try:
             user_data_dir = self.user_data_dir
             if user_data_dir is None:
-                self._temporary_directory = tempfile.TemporaryDirectory(prefix="tiktok-scraper-")
+                self._temporary_directory = tempfile.TemporaryDirectory(prefix="tokscrape-")
                 user_data_dir = self._temporary_directory.name
             self._context = await self._playwright.chromium.launch_persistent_context(
                 user_data_dir,

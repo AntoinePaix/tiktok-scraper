@@ -6,13 +6,13 @@ import time
 from collections.abc import AsyncIterator
 from typing import Any
 
-from tiktok_scraper.client import TikTokClient
-from tiktok_scraper.client import TikTokError
-from tiktok_scraper.constants import USER_ITEM_LIST_API_URL
-from tiktok_scraper.constants import USER_URL_FORMAT
-from tiktok_scraper.constants import TikTokStatus
-from tiktok_scraper.models import TikTok
-from tiktok_scraper.models import UserMetadata
+from tokscrape.client import TikTokClient
+from tokscrape.client import TikTokError
+from tokscrape.constants import USER_ITEM_LIST_API_URL
+from tokscrape.constants import USER_URL_FORMAT
+from tokscrape.constants import TikTokStatus
+from tokscrape.models import TikTok
+from tokscrape.models import UserMetadata
 
 MAX_SAME_PAGE_RETRIES = 3
 

@@ -15,7 +15,7 @@ from pydantic import BaseModel
 from pydantic import Field
 from pydantic import PrivateAttr
 
-from tiktok_scraper.constants import VIDEO_URL_FORMAT
+from tokscrape.constants import VIDEO_URL_FORMAT
 
 
 def _stats(data: dict[str, Any], stats_key: str = "stats", stats_v2_key: str = "statsV2") -> dict[str, Any]:

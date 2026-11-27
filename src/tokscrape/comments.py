@@ -6,13 +6,13 @@ from collections.abc import AsyncIterator
 from typing import TYPE_CHECKING
 from typing import Any
 
-from tiktok_scraper.constants import COMMENTS_API_URL
-from tiktok_scraper.constants import REPLIES_API_URL
-from tiktok_scraper.models import Comment
-from tiktok_scraper.post import extract_video_id
+from tokscrape.constants import COMMENTS_API_URL
+from tokscrape.constants import REPLIES_API_URL
+from tokscrape.models import Comment
+from tokscrape.post import extract_video_id
 
 if TYPE_CHECKING:
-    from tiktok_scraper.browser import TikTokBrowser
+    from tokscrape.browser import TikTokBrowser
 
 COMMENTS_PER_REQUEST = 50
 REPLIES_PER_REQUEST = 50

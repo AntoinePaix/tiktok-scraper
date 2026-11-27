@@ -2,9 +2,9 @@ import asyncio
 
 import pytest
 
-from tiktok_scraper import TikTokError
-from tiktok_scraper import get_tiktok
-from tiktok_scraper.constants import TikTokStatus
+from tokscrape import TikTokError
+from tokscrape import get_tiktok
+from tokscrape.constants import TikTokStatus
 
 
 class FakeClient:
