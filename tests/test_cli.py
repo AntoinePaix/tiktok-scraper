@@ -43,3 +43,9 @@ def test_command_help(command):
     result = runner.invoke(app, [command, "--help"])
     assert result.exit_code == 0
     assert "--proxy" in plain_output(result)
+
+
+def test_search_users_and_music_are_exclusive():
+    result = runner.invoke(app, ["search", "paris", "--users", "--music"])
+    assert result.exit_code != 0
+    assert "can't be used together" in plain_output(result)

@@ -28,5 +28,7 @@ COMMENTS_API_URL = "https://www.tiktok.com/api/comment/list/"
 REPLIES_API_URL = "https://www.tiktok.com/api/comment/list/reply/"
 SEARCH_VIDEOS_API_URL = "https://www.tiktok.com/api/search/general/full/"
 SEARCH_USERS_API_URL = "https://www.tiktok.com/api/search/user/full/"
+# No "Sounds" tab on the website, but the endpoint answers (in the mobile app's format).
+SEARCH_MUSIC_API_URL = "https://www.tiktok.com/api/search/music/full/"
 HASHTAG_DETAIL_API_URL = "https://www.tiktok.com/api/challenge/detail/"
 HASHTAG_VIDEOS_API_URL = "https://www.tiktok.com/api/challenge/item_list/"

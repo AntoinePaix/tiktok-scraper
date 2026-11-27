@@ -19,6 +19,7 @@ from tiktok_scraper.models import SearchUser
 from tiktok_scraper.models import TikTok
 from tiktok_scraper.models import UserMetadata
 from tiktok_scraper.post import get_tiktok
+from tiktok_scraper.search import iter_search_music
 from tiktok_scraper.search import iter_search_users
 from tiktok_scraper.search import iter_search_videos
 from tiktok_scraper.user import get_user_info
@@ -47,6 +48,7 @@ __all__ = [
     "iter_comments",
     "iter_hashtag_videos",
     "iter_replies",
+    "iter_search_music",
     "iter_search_users",
     "iter_search_videos",
     "iter_user_tiktoks",

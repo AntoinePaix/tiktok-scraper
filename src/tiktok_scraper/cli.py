@@ -293,6 +293,7 @@ def comments(
 def search(
     keyword: Annotated[str, typer.Argument(help="Searched keyword, e.g. ukraine.")],
     users: Annotated[bool, typer.Option("--users", help="Search accounts instead of tiktoks.")] = False,
+    music: Annotated[bool, typer.Option("--music", help="Search sounds instead of tiktoks.")] = False,
     limit: LimitOpt = 50,
     headless: HeadlessOpt = True,
     proxy: ProxyOpt = None,
@@ -300,14 +301,23 @@ def search(
     verbose: VerboseOpt = 0,
     quiet: QuietOpt = False,
 ) -> None:
-    """Search tiktoks (or accounts) by keyword, as JSON lines (needs the "playwright" extra)."""
+    """Search tiktoks (or accounts, or sounds) by keyword, as JSON lines (needs the "playwright" extra)."""
+    from tiktok_scraper.search import iter_search_music
     from tiktok_scraper.search import iter_search_users
     from tiktok_scraper.search import iter_search_videos
 
+    if users and music:
+        raise typer.BadParameter("--users and --music can't be used together.")
+    if users:
+        search_function, label = iter_search_users, "accounts"
+    elif music:
+        search_function, label = iter_search_music, "sounds"
+    else:
+        search_function, label = iter_search_videos, "tiktoks"
     _setup_logging(verbose, quiet)
     browser_options = {"proxy": proxy, "timeout": timeout, "headless": headless}
-    iterate = partial(iter_search_users if users else iter_search_videos, keyword=keyword, limit=limit)
-    _execute(_print_browser_results(browser_options, iterate, "accounts" if users else "tiktoks"))
+    iterate = partial(search_function, keyword=keyword, limit=limit)
+    _execute(_print_browser_results(browser_options, iterate, label))
 
 
 @app.command()

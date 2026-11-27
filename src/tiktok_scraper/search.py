@@ -6,8 +6,10 @@ from collections.abc import AsyncIterator
 from typing import TYPE_CHECKING
 from typing import Any
 
+from tiktok_scraper.constants import SEARCH_MUSIC_API_URL
 from tiktok_scraper.constants import SEARCH_USERS_API_URL
 from tiktok_scraper.constants import SEARCH_VIDEOS_API_URL
+from tiktok_scraper.models import Music
 from tiktok_scraper.models import SearchUser
 from tiktok_scraper.models import TikTok
 
@@ -16,6 +18,7 @@ if TYPE_CHECKING:
 
 VIDEOS_PER_REQUEST = 12
 USERS_PER_REQUEST = 10
+MUSIC_PER_REQUEST = 10
 
 
 async def _paginate_search(
@@ -84,4 +87,29 @@ async def iter_search_users(
         yield SearchUser.from_api(entry["user_info"])
         counter += 1
         if limit is not None and counter >= limit:
+            return
+
+
+async def iter_search_music(
+    browser: TikTokBrowser,
+    keyword: str,
+    limit: int | None = None,
+) -> AsyncIterator[Music]:
+    """Yield the sounds found by a keyword search.
+
+    Args:
+        browser (TikTokBrowser): Started browser, to sign the API requests.
+        keyword (str): Searched keyword, e.g. "paris".
+        limit (int, optional): Maximum number of sounds. Defaults to all the results TikTok returns.
+    """
+    seen_ids: set[str] = set()
+    async for entry in _paginate_search(browser, SEARCH_MUSIC_API_URL, keyword, "data", MUSIC_PER_REQUEST):
+        if not entry.get("music_info"):
+            continue
+        music = Music.from_search(entry["music_info"])
+        if not music.id or music.id in seen_ids:
+            continue
+        seen_ids.add(music.id)
+        yield music
+        if limit is not None and len(seen_ids) >= limit:
             return

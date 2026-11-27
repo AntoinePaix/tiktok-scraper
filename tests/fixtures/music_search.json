@@ -1,0 +1,130 @@
+{
+  "data": [
+    {
+      "music_info": {
+        "id": 6766128122128500738,
+        "id_str": "6766128122128500738",
+        "title": "Paris",
+        "author": "Else",
+        "album": "Paris",
+        "duration": 60,
+        "is_original": false,
+        "is_original_sound": false,
+        "user_count": 1401567,
+        "play_url": {
+          "uri": "https://sf16-music.tiktokcdn-eu.com/obj/tos-alisg-ve-2774/o0eyc3nzQ8CnoxB50dDQBUtrBT6ybZHPjpfng3",
+          "url_list": [
+            "https://sf16-music.tiktokcdn-eu.com/obj/tos-alisg-ve-2774/o0eyc3nzQ8CnoxB50dDQBUtrBT6ybZHPjpfng3"
+          ],
+          "width": 720,
+          "height": 720,
+          "url_prefix": null
+        },
+        "cover_large": {
+          "uri": "tos-alisg-v-2774/0c6f9b5b9dbe4ce79434e9b5f3aa6e97",
+          "url_list": [
+            "https://p19-common.tiktokcdn-eu.com/tos-alisg-v-2774/0c6f9b5b9dbe4ce79434e9b5f3aa6e97~tplv-tiktokx-cropcenter:720:720.jpeg?dr=10427&t=4d5b0474&ps=933b5bde&shp=08d74b56&shcp=544a444f&idc=no1a"
+          ],
+          "width": 720,
+          "height": 720,
+          "url_prefix": null
+        },
+        "cover_medium": {
+          "uri": "tos-alisg-v-2774/0c6f9b5b9dbe4ce79434e9b5f3aa6e97",
+          "url_list": [
+            "https://p16-common.tiktokcdn-eu.com/tos-alisg-v-2774/0c6f9b5b9dbe4ce79434e9b5f3aa6e97~tplv-tiktokx-cropcenter:200:200.jpeg?dr=10427&t=4d5b0474&ps=933b5bde&shp=08d74b56&shcp=544a444f&idc=no1a"
+          ],
+          "width": 720,
+          "height": 720,
+          "url_prefix": null
+        }
+      }
+    },
+    {
+      "music_info": {
+        "id": 6923964694499690498,
+        "id_str": "6923964694499690498",
+        "title": "Paris",
+        "author": "Theo Degler",
+        "album": "Vive la France",
+        "duration": 60,
+        "is_original": false,
+        "is_original_sound": false,
+        "user_count": 170830,
+        "play_url": {
+          "uri": "https://sf16-music.tiktokcdn-eu.com/obj/tos-alisg-ve-2774/owW87QIwo4BiFiiUX3sG4YfGcmBKAA1MyOy1pE",
+          "url_list": [
+            "https://sf16-music.tiktokcdn-eu.com/obj/tos-alisg-ve-2774/owW87QIwo4BiFiiUX3sG4YfGcmBKAA1MyOy1pE"
+          ],
+          "width": 720,
+          "height": 720,
+          "url_prefix": null
+        },
+        "cover_large": {
+          "uri": "tos-alisg-v-2774/9d334a3773fd4e53867f3ac86bd7b454",
+          "url_list": [
+            "https://p16-common.tiktokcdn-eu.com/tos-alisg-v-2774/9d334a3773fd4e53867f3ac86bd7b454~tplv-tiktokx-cropcenter:720:720.jpeg?dr=10427&t=4d5b0474&ps=933b5bde&shp=08d74b56&shcp=544a444f&idc=no1a"
+          ],
+          "width": 720,
+          "height": 720,
+          "url_prefix": null
+        },
+        "cover_medium": {
+          "uri": "tos-alisg-v-2774/9d334a3773fd4e53867f3ac86bd7b454",
+          "url_list": [
+            "https://p16-common.tiktokcdn-eu.com/tos-alisg-v-2774/9d334a3773fd4e53867f3ac86bd7b454~tplv-tiktokx-cropcenter:200:200.jpeg?dr=10427&t=4d5b0474&ps=933b5bde&shp=08d74b56&shcp=544a444f&idc=no1a"
+          ],
+          "width": 720,
+          "height": 720,
+          "url_prefix": null
+        }
+      }
+    },
+    {
+      "music_info": {
+        "id": 7487637065829124097,
+        "id_str": "7487637065829124097",
+        "title": "Paris",
+        "author": "Nono La Grinta",
+        "album": "Paris",
+        "duration": 60,
+        "is_original": false,
+        "is_original_sound": false,
+        "user_count": 37819,
+        "play_url": {
+          "uri": "https://sf16-music.tiktokcdn-eu.com/obj/tos-alisg-ve-2774/okqsofEYQBgn0d6fR3FQSSvWiO5BItC0DBWZd5",
+          "url_list": [
+            "https://sf16-music.tiktokcdn-eu.com/obj/tos-alisg-ve-2774/okqsofEYQBgn0d6fR3FQSSvWiO5BItC0DBWZd5"
+          ],
+          "width": 720,
+          "height": 720,
+          "url_prefix": null
+        },
+        "cover_large": {
+          "uri": "tos-alisg-v-2774/owAArIzxfMA0mj7eVGKaHQ6fLAGIAIeMNrZzf0",
+          "url_list": [
+            "https://p77-sg.tiktokcdn.com/aweme/720x720/tos-alisg-v-2774/owAArIzxfMA0mj7eVGKaHQ6fLAGIAIeMNrZzf0.jpeg"
+          ],
+          "width": 720,
+          "height": 720,
+          "url_prefix": null
+        },
+        "cover_medium": {
+          "uri": "tos-alisg-v-2774/owAArIzxfMA0mj7eVGKaHQ6fLAGIAIeMNrZzf0",
+          "url_list": [
+            "https://p77-sg.tiktokcdn.com/aweme/200x200/tos-alisg-v-2774/owAArIzxfMA0mj7eVGKaHQ6fLAGIAIeMNrZzf0.jpeg"
+          ],
+          "width": 720,
+          "height": 720,
+          "url_prefix": null
+        }
+      }
+    }
+  ],
+  "cursor": 10,
+  "has_more": 1,
+  "log_pb": {
+    "impr_id": "20261127144621CFE3D9AB14C4BB137C09"
+  },
+  "status_code": 0
+}

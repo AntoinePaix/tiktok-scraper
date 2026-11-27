@@ -40,9 +40,11 @@ class Music(Model):
     is_original: bool | None = None  # a sound recorded by the author, not a published track
     url: str | None = None  # audio file
     cover_url: str | None = None
+    video_count: int | None = None  # videos using this sound, search results only
 
     @classmethod
     def from_api(cls, music: dict[str, Any]) -> Music:
+        """Build the music of a tiktok, from the `music` of an item of TikTok's web API."""
         return cls(
             id=music.get("id") or None,
             title=music.get("title") or None,
@@ -52,6 +54,25 @@ class Music(Model):
             is_original=music.get("original"),
             url=music.get("playUrl") or None,
             cover_url=music.get("coverLarge") or music.get("coverMedium") or None,
+        )
+
+    @classmethod
+    def from_search(cls, music_info: dict[str, Any]) -> Music:
+        """Build a sound found by `api/search/music/full/`, whose `music_info` uses the mobile app's format."""
+
+        def first_url(url_object: dict[str, Any] | None) -> str | None:
+            return next(iter((url_object or {}).get("url_list") or []), None)
+
+        return cls(
+            id=music_info.get("id_str") or str(music_info.get("id") or "") or None,
+            title=music_info.get("title") or None,
+            author=music_info.get("author") or None,
+            album=music_info.get("album") or None,
+            duration=music_info.get("duration") or None,
+            is_original=music_info.get("is_original_sound"),
+            url=first_url(music_info.get("play_url")),
+            cover_url=first_url(music_info.get("cover_large")) or first_url(music_info.get("cover_medium")),
+            video_count=music_info.get("user_count"),
         )
 
 

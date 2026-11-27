@@ -1,8 +1,13 @@
 import asyncio
 import copy
+import json
+from pathlib import Path
 
+from tiktok_scraper.constants import SEARCH_MUSIC_API_URL
 from tiktok_scraper.constants import SEARCH_USERS_API_URL
 from tiktok_scraper.constants import SEARCH_VIDEOS_API_URL
+from tiktok_scraper.models import Music
+from tiktok_scraper.search import iter_search_music
 from tiktok_scraper.search import iter_search_users
 from tiktok_scraper.search import iter_search_videos
 
@@ -86,3 +91,37 @@ def test_tiktok_to_dict(item):
     assert data["url"] == "https://www.tiktok.com/@emmanuelmacron/video/1"
     assert data["play_count"] == item["stats"]["playCount"]
     assert data["created_at"].endswith("Z")
+
+
+MUSIC_SEARCH = json.loads((Path(__file__).parent / "fixtures" / "music_search.json").read_text())
+
+
+def test_music_from_search():
+    music = Music.from_search(MUSIC_SEARCH["data"][0]["music_info"])
+
+    assert music.id == "6766128122128500738"
+    assert (music.title, music.author, music.album) == ("Paris", "Else", "Paris")
+    assert music.duration == 60
+    assert music.is_original is False
+    assert music.video_count == 1401567
+    assert music.url.startswith("https://") and music.cover_url.startswith("https://")
+
+
+def test_iter_search_music_paginates():
+    first_page = copy.deepcopy(MUSIC_SEARCH)
+    second_page = {"data": [MUSIC_SEARCH["data"][0], {"other": {}}], "cursor": 20, "has_more": 0}
+    browser = FakeBrowser({0: first_page, 10: second_page})
+
+    sounds = collect(iter_search_music(browser, "paris"))
+
+    # The repeated sound and the entry without music_info are skipped.
+    assert [sound.author for sound in sounds] == ["Else", "Theo Degler", "Nono La Grinta"]
+    url, params, from_page = browser.requests[0]
+    assert (url, from_page, params["keyword"]) == (SEARCH_MUSIC_API_URL, "search", "paris")
+    assert browser.requests[1][1]["cursor"] == 10
+
+
+def test_iter_search_music_limit():
+    browser = FakeBrowser({0: MUSIC_SEARCH})
+
+    assert len(collect(iter_search_music(browser, "paris", limit=2))) == 2

@@ -83,6 +83,7 @@ tiktok-scraper comments 7703703665818733857 --headed       # show the browser wi
 tiktok-scraper search ukraine > ukraine.jsonl     # first 50 tiktoks
 tiktok-scraper search ukraine -n 200              # first 200 tiktoks
 tiktok-scraper search ukraine --users -n 10       # first 10 accounts
+tiktok-scraper search paris --music -n 20         # first 20 sounds
 
 # List tiktoks of a hashtag as JSON lines (needs the "playwright" extra, opens a browser window)
 tiktok-scraper hashtag ukraine -n 200 > ukraine.jsonl
@@ -110,10 +111,11 @@ Options specific to tiktok-scraper:
 
 | Option | Default | Description |
 | --- | --- | --- |
-| `-n`, `--limit` | all (`videos`), 50 (others) | Maximum number of tiktoks, comments or accounts |
+| `-n`, `--limit` | all (`videos`), 50 (others) | Maximum number of tiktoks, comments, accounts or sounds |
 | `--progress / --no-progress` | on | Live progress bars, when stderr is a terminal (`videos`) |
 | `--replies / --no-replies` | on | Also list replies to comments (`comments`) |
 | `--users` | off | Search accounts instead of tiktoks (`search`) |
+| `--music` | off | Search sounds instead of tiktoks (`search`) |
 | `--headless / --headed` | headless, headed for `hashtag` | Hide the browser window, or show it |
 
 ## Proxies
@@ -144,7 +146,8 @@ TIKTOK_PROXY=http://host:8080 tiktok-scraper info charlidamelio
   `language`, `author_id`, `author_username`, `author_nickname`, `parent_id` (`null` for a top-level comment).
   Replies come right after their comment.
 - `search` and `hashtag` print one JSON object per tiktok, or per account with `--users` (`id`, `sec_uid`,
-  `username`, `nickname`, `signature`, `follower_count`). A tiktok has:
+  `username`, `nickname`, `signature`, `follower_count`), or per sound with `--music` (same fields as a tiktok's
+  `music` below, plus `video_count`, the number of videos using it). A tiktok has:
   - `id`, `url`, `description`, `created_at`, `language`, `hashtags`, `mentions`, `location` (`id`, `name`,
     `address`, `city`, or `null`)
   - `author_id`, `author_username`, `author_nickname`, `author_sec_uid`, `author_verified`
@@ -221,6 +224,7 @@ import asyncio
 from tiktok_scraper import get_hashtag
 from tiktok_scraper import iter_comments
 from tiktok_scraper import iter_hashtag_videos
+from tiktok_scraper import iter_search_music
 from tiktok_scraper import iter_search_users
 from tiktok_scraper import iter_search_videos
 from tiktok_scraper.browser import TikTokBrowser
@@ -237,6 +241,9 @@ async def main():
 
         async for user in iter_search_users(browser, "ukraine", limit=10):
             print(user.username, user.follower_count)
+
+        async for sound in iter_search_music(browser, "paris", limit=10):
+            print(sound.title, sound.author, sound.video_count)
 
     # TikTok often refuses hashtag videos to a headless browser: use a visible window.
     async with TikTokBrowser(headless=False) as browser:
@@ -299,6 +306,8 @@ developer tools on `/api/`, and keep the parameters that are not common ones (`k
   command opens a visible window by default (`--headless` to hide it). On a server without a display, run it in a
   virtual one: `xvfb-run tiktok-scraper hashtag ukraine`.
 - A hashtag's feed also contains videos without the hashtag in their description: TikTok's ranking, not a bug.
+- Sound search (`--music`) uses an endpoint the website has but no longer shows (no "Sounds" tab): it may disappear.
+  Places can't be searched on the web, unlike in the app; a tiktok's place is in its `location` field.
 - When TikTok shows a CAPTCHA, requests fail with a `TikTokError` saying so. The scraper doesn't solve CAPTCHAs:
   wait, slow down, or change IP address.
 - This is unofficial and may break whenever TikTok changes its website. Signing requests in a browser goes against
