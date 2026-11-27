@@ -346,11 +346,31 @@ the `uv run` prefix.
   pre-commit hooks, and another runs the offline tests on Python 3.11, 3.12, 3.13 and 3.14.
 - **Code style**: ruff with 120-character lines, one import per line and absolute imports only (see
   `pyproject.toml`).
+- **Releases** (`.github/workflows/release.yml`): pushing a version tag such as `v0.4.0` checks it matches the
+  version in `pyproject.toml`, runs the tests, builds the package and publishes a GitHub release with the wheel, the
+  sdist and the list of commits since the previous tag.
+
+### Releasing
+
+Versions follow `MAJOR.MINOR.PATCH`: bump `minor` for new features or breaking changes (while the version is
+`0.x`), `patch` for fixes only.
+
+```bash
+uv version --bump minor                          # e.g. 0.4.0 -> 0.5.0, in pyproject.toml and uv.lock
+git commit -am "Release 0.5.0"
+git tag v0.5.0
+git push origin main v0.5.0                       # the release workflow publishes the GitHub release
+```
+
+A released version can be installed without cloning the repository:
+`pip install git+https://github.com/AntoinePaix/tiktok-scraper@v0.5.0`, or from the wheel attached to the release.
+The name `tiktok-scraper` is already taken on PyPI by another project, so releases are not published there.
 
 ### Repository layout
 
 ```
-.github/workflows/ci.yml   lint (pre-commit) + tests on Python 3.11 to 3.14
+.github/workflows/ci.yml        lint (pre-commit) + tests on Python 3.11 to 3.14
+.github/workflows/release.yml   GitHub release on a version tag (v*)
 src/tiktok_scraper/
 ├── cli.py          # command line (typer): videos, info, tiktok, comments, search, hashtag
 ├── client.py       # HTTP client: curl_cffi, page rehydration data
