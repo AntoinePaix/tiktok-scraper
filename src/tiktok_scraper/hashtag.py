@@ -68,7 +68,7 @@ async def iter_hashtag_videos(
         for item in items:
             if item.get("id") and item["id"] not in seen_ids:
                 seen_ids.add(item["id"])
-                yield TikTok(item)
+                yield TikTok.from_api(item)
                 if limit is not None and len(seen_ids) >= limit:
                     return
 

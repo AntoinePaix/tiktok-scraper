@@ -85,4 +85,4 @@ def test_tiktok_to_dict(item):
     assert data["id"] == "1"
     assert data["url"] == "https://www.tiktok.com/@emmanuelmacron/video/1"
     assert data["play_count"] == item["stats"]["playCount"]
-    assert data["created_at"].endswith("+00:00")
+    assert data["created_at"].endswith("Z")

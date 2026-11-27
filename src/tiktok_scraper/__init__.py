@@ -12,6 +12,8 @@ from tiktok_scraper.hashtag import get_hashtag
 from tiktok_scraper.hashtag import iter_hashtag_videos
 from tiktok_scraper.models import Comment
 from tiktok_scraper.models import Hashtag
+from tiktok_scraper.models import Location
+from tiktok_scraper.models import Music
 from tiktok_scraper.models import SearchUser
 from tiktok_scraper.models import TikTok
 from tiktok_scraper.models import UserMetadata
@@ -27,6 +29,8 @@ __all__ = [
     "Comment",
     "DownloadReport",
     "Hashtag",
+    "Location",
+    "Music",
     "SearchUser",
     "TikTok",
     "TikTokClient",

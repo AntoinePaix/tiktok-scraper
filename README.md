@@ -137,11 +137,24 @@ TIKTOK_PROXY=http://host:8080 tiktok-scraper info charlidamelio
 - `comments` prints one JSON object per line: `id`, `video_id`, `text`, `created_at`, `like_count`, `reply_count`,
   `language`, `author_id`, `author_username`, `author_nickname`, `parent_id` (`null` for a top-level comment).
   Replies come right after their comment.
-- `search` and `hashtag` print one JSON object per tiktok (`id`, `url`, `description`, `created_at`,
-  `author_username`, `play_count`, `like_count`, ...), or per account with `--users` (`id`, `sec_uid`, `username`,
-  `nickname`, `signature`, `follower_count`).
+- `search` and `hashtag` print one JSON object per tiktok, or per account with `--users` (`id`, `sec_uid`,
+  `username`, `nickname`, `signature`, `follower_count`). A tiktok has:
+  - `id`, `url`, `description`, `created_at`, `language`, `hashtags`, `mentions`, `location` (`id`, `name`,
+    `address`, `city`, or `null`)
+  - `author_id`, `author_username`, `author_nickname`, `author_sec_uid`, `author_verified`
+  - `is_slideshow`, `image_count`, `duration` (seconds, `null` for a slideshow), `width`, `height`, `cover_url`,
+    `origin_cover_url` (full size), `dynamic_cover_url` (animated)
+  - `play_count`, `like_count`, `comment_count`, `share_count`, `save_count`, `repost_count`
+  - `is_ad`, `duet_enabled`, `stitch_enabled`
+  - `music` (`id`, `title`, `author`, `album`, `duration`, `is_original`, `url`, `cover_url`, or `null`)
+- Dates are ISO 8601 in UTC, e.g. `2026-10-27T17:21:43Z`.
 
 ## Library use
+
+Results are [pydantic](https://docs.pydantic.dev/) models (`TikTok`, `Music`, `Location`, `UserMetadata`,
+`Comment`, `SearchUser`, `Hashtag`), validated when built from TikTok's JSON: their fields are typed (counts are
+`int`, dates are `datetime` in UTC). `to_dict()` gives JSON-ready values (same as `model_dump(mode="json")`), and
+`tiktok.raw` keeps everything TikTok returned for a tiktok.
 
 Account metadata, tiktoks and video downloads:
 
@@ -207,7 +220,7 @@ async def main():
             print(f"{indent}@{comment.author_username}: {comment.text} ({comment.like_count} likes)")
 
         async for tiktok in iter_search_videos(browser, "ukraine", limit=100):
-            print(tiktok.webpage_url, tiktok.to_dict()["play_count"])
+            print(tiktok.url, tiktok.play_count, tiktok.hashtags)
 
         async for user in iter_search_users(browser, "ukraine", limit=10):
             print(user.username, user.follower_count)
@@ -217,7 +230,7 @@ async def main():
         hashtag = await get_hashtag(browser, "ukraine")
         print(hashtag.id, hashtag.video_count, hashtag.view_count)
         async for tiktok in iter_hashtag_videos(browser, hashtag, limit=100):
-            print(tiktok.webpage_url)
+            print(tiktok.url)
 
 
 asyncio.run(main())

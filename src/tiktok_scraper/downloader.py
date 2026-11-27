@@ -86,12 +86,12 @@ async def download_video(
 async def get_tiktok_detail(client: TikTokClient, tiktok: TikTok) -> TikTok:
     """Fetch the video page of a tiktok, like yt-dlp does, to get fresh video URLs and their cookies."""
     try:
-        universal_data = await client.get_universal_data(tiktok.webpage_url)
+        universal_data = await client.get_universal_data(tiktok.url)
     except Exception as error:
-        logger.warning("Unable to fetch %s: %s", tiktok.webpage_url, error)
+        logger.warning("Unable to fetch %s: %s", tiktok.url, error)
         return tiktok
     item = (universal_data.get("webapp.video-detail") or {}).get("itemInfo", {}).get("itemStruct")
-    return TikTok(item) if item and item.get("video") else tiktok
+    return TikTok.from_api(item) if item and item.get("video") else tiktok
 
 
 async def download_first(
@@ -133,7 +133,7 @@ async def download_slideshow(
     for index, filename in enumerate(tiktok.image_filenames):
         if await aiofiles.os.path.exists(os.path.join(directory, filename)):
             continue
-        args = (filename, directory, tiktok.webpage_url, progress, "image/", progress_name)
+        args = (filename, directory, tiktok.url, progress, "image/", progress_name)
         if await download_first(client, tiktok.image_urls[index], *args):
             continue
         # The URLs of the listing may have expired: retry with fresh ones from the video page.
@@ -145,7 +145,7 @@ async def download_slideshow(
 
     audio_path = os.path.join(directory, tiktok.audio_filename)
     if tiktok.audio_url and not await aiofiles.os.path.exists(audio_path):
-        args = (tiktok.audio_filename, directory, tiktok.webpage_url, progress, "audio/", progress_name)
+        args = (tiktok.audio_filename, directory, tiktok.url, progress, "audio/", progress_name)
         if not await download_first(client, [tiktok.audio_url], *args):
             logger.warning("[!] Unable to download the soundtrack of %s", tiktok.id)
     return all_images
@@ -190,7 +190,7 @@ async def process_tiktok(
                     url,
                     tiktok.video_filename,
                     report.directory,
-                    tiktok.webpage_url,
+                    tiktok.url,
                     progress,
                 ):
                     logger.info("[+] Download %s", tiktok.video_filename)

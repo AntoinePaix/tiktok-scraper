@@ -71,7 +71,7 @@ def test_comment_from_api():
     assert comment.reply_count == 2
     assert comment.author_username == "someone"
     assert comment.created_at == datetime.datetime.fromtimestamp(1793685419, datetime.UTC)
-    assert comment.to_dict()["created_at"] == comment.created_at.isoformat()
+    assert datetime.datetime.fromisoformat(comment.to_dict()["created_at"]) == comment.created_at
 
 
 def test_reply_from_api():

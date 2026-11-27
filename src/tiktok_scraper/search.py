@@ -60,7 +60,7 @@ async def iter_search_videos(browser: TikTokBrowser, keyword: str, limit: int | 
         if not item or not item.get("id") or item["id"] in seen_ids:
             continue
         seen_ids.add(item["id"])
-        yield TikTok(item)
+        yield TikTok.from_api(item)
         if limit is not None and len(seen_ids) >= limit:
             return
 

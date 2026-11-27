@@ -52,7 +52,7 @@ def slideshow(item):
         ],
     }
     item["music"] = {"playUrl": "https://cdn.example/sound"}
-    return TikTok(item)
+    return TikTok.from_api(item)
 
 
 def run(client, tiktok, report):

@@ -14,6 +14,19 @@ def item() -> dict[str, Any]:
 
 
 @pytest.fixture
+def video_full() -> dict[str, Any]:
+    """Video from `api/creator/item_list/` with a location, mentions, hashtags and music, trimmed to the
+    fields read by `TikTok.from_api`."""
+    return json.loads((FIXTURES_DIRECTORY / "video_full.json").read_text())
+
+
+@pytest.fixture
+def slideshow_item() -> dict[str, Any]:
+    """Slideshow from `api/creator/item_list/`, trimmed to the fields read by `TikTok.from_api`."""
+    return json.loads((FIXTURES_DIRECTORY / "slideshow.json").read_text())
+
+
+@pytest.fixture
 def user_info() -> dict[str, Any]:
     """`webapp.user-detail.userInfo` from a user page rehydration data."""
     return {
